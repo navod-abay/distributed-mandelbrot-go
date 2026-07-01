@@ -95,12 +95,19 @@ func WriteToBmpFileNoColor(pixelArray [][]bool, imageDimensions models.ImageDime
 	defer bmp_f.Close()
 }
 
-func WriteToBmpFile(pixelArray [][]uint16, imageDimensions models.ImageDimensions, iterationThreshold int, writeWaitgroup *sync.WaitGroup) {
+func WriteToBmpFile(pixelArray [][]uint16, imageDimensions models.ImageDimensions, filename string, iterationThreshold int, writeWaitgroup *sync.WaitGroup) {
 	defer writeWaitgroup.Done()
 	fmt.Println("Writing output to bmp file")
-	bmp_f, err := os.OpenFile("output.bmp", os.O_WRONLY|os.O_CREATE, 0644)
+	dir := filepath.Dir("output/" + filename)
+	dir_err := os.MkdirAll(dir, os.ModePerm)
+	if dir_err != nil {
+		slog.Error("Failed to make directory to store files")
+		return
+	}
+	bmp_f, err := os.OpenFile("output/"+filename, os.O_WRONLY|os.O_CREATE, 0644)
 	if err != nil {
 		fmt.Println("Failed to opena  writer for the bmp file")
+		slog.Error(err.Error())
 	} else {
 		WriteBmpHeader(bmp_f, CalculateBMPHeaderDetails(imageDimensions))
 		writer := bufio.NewWriter(bmp_f)
@@ -113,7 +120,6 @@ func WriteToBmpFile(pixelArray [][]uint16, imageDimensions models.ImageDimension
 		writer.Flush()
 		slog.Debug("Flushed the buffer")
 	}
-
 	defer bmp_f.Close()
 }
 

@@ -2,14 +2,12 @@ package colors
 
 import (
 	"encoding/binary"
-	"fmt"
 	"math"
 )
 
 func MapIterationsToUint16Colors(iterations uint16, hueUpper int32, hueLower int32, saturation int32, value int32) []byte {
 	buf := make([]byte, 2)
 	hue := hueLower + (hueUpper-hueLower)/100*int32(iterations)
-	fmt.Printf("Hue: %v, S: %v, V: %v\n", hue, saturation, value)
 	R, G, B := hsvTo2ByteRGB(hue, float64(saturation), float64(value))
 	// fmt.Printf("R: %v, B: %v, G: %v", R, G, B)
 	var colorNum uint16

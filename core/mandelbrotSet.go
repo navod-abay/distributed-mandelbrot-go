@@ -192,7 +192,7 @@ func Run() {
 				binary.LittleEndian.PutUint16(includedColor, 0)
 				excludedColor := make([]byte, 2)
 				binary.LittleEndian.PutUint16(excludedColor, 255)
-				go writers.WriteToBmpFile(pixelArray, imageDimensions, maximum_iteration_depth, &writeWaitGroup)
+				go writers.WriteToBmpFile(pixelArray, imageDimensions, "output.bmp", maximum_iteration_depth, &writeWaitGroup)
 
 			}
 		} else {
@@ -225,7 +225,7 @@ func Run() {
 				binary.LittleEndian.PutUint16(includedColor, 0)
 				excludedColor := make([]byte, 2)
 				binary.LittleEndian.PutUint16(excludedColor, 255)
-				go writers.WriteToBmpFile(pixelArray, imageDimensions, maximum_iteration_depth, &writeWaitGroup)
+				go writers.WriteToBmpFile(pixelArray, imageDimensions, "output.bmp", maximum_iteration_depth, &writeWaitGroup)
 
 			}
 		} else {
@@ -259,7 +259,7 @@ func Run() {
 				binary.LittleEndian.PutUint16(includedColor, 0)
 				excludedColor := make([]byte, 2)
 				binary.LittleEndian.PutUint16(excludedColor, 255)
-				go writers.WriteToBmpFile(pixelArray, imageDimensions, maximum_iteration_depth, &writeWaitGroup)
+				go writers.WriteToBmpFile(pixelArray, imageDimensions, "output.bmp", maximum_iteration_depth, &writeWaitGroup)
 
 			}
 		}

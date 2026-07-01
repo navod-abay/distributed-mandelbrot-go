@@ -56,7 +56,6 @@ func sendClientHandshakeResponse(buffWriter *bufio.Writer) error {
 func KeepListening(ln net.Listener, wg *sync.WaitGroup) {
 	defer wg.Done()
 	var lock sync.Mutex
-	fmt.Printf("Started Listening on port: %v\n", port)
 	keepConnection := true
 	for keepConnection {
 		conn, err := ln.Accept() // Accept a connection
@@ -88,12 +87,13 @@ func main() {
 		}
 		return nil
 	})
+	port := flag.Int("port", 8080, "Port to run on")
 	flag.Parse()
 	if !isCustomProto {
-		rpcClientFlow()
+		rpcClientFlow(*port)
 
 	} else {
-		ln, err := net.Listen("tcp", ":8080")
+		ln, err := net.Listen("tcp", ":"+strconv.Itoa(*port))
 
 		if err != nil {
 			fmt.Printf("Couldn't start listening on port :8080. Error: %v", err)

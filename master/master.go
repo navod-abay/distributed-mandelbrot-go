@@ -11,6 +11,7 @@ import (
 	"net/rpc"
 	"os"
 	"strconv"
+	"strings"
 	"sync"
 
 	generate "github.com/navod-abay/mandelbrotset-go/core"
@@ -30,8 +31,6 @@ type RPCClientIdentifier struct {
 	numProcesses int16
 	client       *rpc.Client
 }
-
-const port string = ":8080"
 
 func sendHandshakeRequest(conn *bufio.Writer, id int) error {
 	slog.Debug("Sending Handshake Request", "id:", id)
@@ -119,8 +118,9 @@ func main() {
 
 	isCustomProto := true
 	flag.Func("protocolType", "Spcify whether to use RPC or the custom protocol for messaging", func(val string) error {
-		if val != "Custom" {
-			if val != "RPC" {
+		val = strings.ToLower(val)
+		if val != "custom" {
+			if val != "rpc" {
 				return fmt.Errorf("Invalid Protocol Name. Only accepts 'RPC' or 'Custom'. Defaulting to custom protocol")
 			}
 			isCustomProto = false
@@ -132,15 +132,15 @@ func main() {
 
 	slog.SetDefault(logger)
 	fmt.Printf("Running master node\n")
-	IPs := []string{"127.0.0.1"}
+	IPs := []string{"127.0.0.1:8080", "127.0.0.1:8081"}
 	var wg sync.WaitGroup
 	c := make(chan ClientIdentifier, 5)
 	slog.Debug("Flags Parsed", "isCustomProto", isCustomProto)
 	if isCustomProto {
 
 		for id, ip := range IPs {
-			fmt.Printf("Trying to connect to IP: %v\n", ip+port)
-			conn, err := net.Dial("tcp", ip+port)
+			fmt.Printf("Trying to connect to IP: %v\n", ip)
+			conn, err := net.Dial("tcp", ip)
 			if err != nil {
 				fmt.Printf("Couldn't connect to IP: %v, err: %v\n", ip, err)
 				continue

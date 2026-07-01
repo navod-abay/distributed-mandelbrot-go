@@ -56,8 +56,8 @@ func RpcFlow(IPs []string) {
 	var wg sync.WaitGroup
 	c := make(chan RPCClientIdentifier, 5)
 	for index, ip := range IPs {
-		fmt.Printf("Trying to connect(RPC) to IP: %v\n", ip+port)
-		client, err := rpc.Dial("tcp", ip+port)
+		fmt.Printf("Trying to connect(RPC) to IP: %v\n", ip)
+		client, err := rpc.Dial("tcp", ip)
 		if err != nil {
 			fmt.Printf("Couldn't connect to IP: %v, err: %v\n", ip, err)
 			continue
