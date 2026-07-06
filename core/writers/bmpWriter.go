@@ -87,9 +87,7 @@ func WriteToBmpFileNoColor(pixelArray [][]bool, imageDimensions models.ImageDime
 				}
 			}
 		}
-		slog.Debug("Finished writing to the buffer")
 		writer.Flush()
-		slog.Debug("Flushed the buffer")
 	}
 
 	defer bmp_f.Close()
@@ -116,9 +114,7 @@ func WriteToBmpFile(pixelArray [][]uint16, imageDimensions models.ImageDimension
 				writer.Write(colors.MapIterationsToUint16Colors(pixelArray[j][i], imageDimensions.HueUpper, imageDimensions.HueLower, imageDimensions.Sat, imageDimensions.Value))
 			}
 		}
-		slog.Debug("Finished writing to the buffer")
 		writer.Flush()
-		slog.Debug("Flushed the buffer")
 	}
 	defer bmp_f.Close()
 }
@@ -139,9 +135,7 @@ func SaveSnapShotBMP(pixelArray [][]uint16, imageDimensions models.ImageDimensio
 				writer.Write(colors.MapIterationsToUint16Colors(pixelArray[j][i], imageDimensions.HueUpper, imageDimensions.HueLower, imageDimensions.Sat, imageDimensions.Value))
 			}
 		}
-		slog.Debug("Finished writing to the buffer")
 		writer.Flush()
-		slog.Debug("Flushed the buffer")
 	}
 
 	defer bmp_f.Close()

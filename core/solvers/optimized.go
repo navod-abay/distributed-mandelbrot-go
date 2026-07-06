@@ -96,6 +96,8 @@ func GetSubImageDimensionsArrays(imageDimensions models.ImageDimensions, process
 			newImageDimension.Y_high = Y_val
 			newImageDimension.Orig_x_low = imageDimensions.X_low
 			newImageDimension.Orig_y_low = imageDimensions.Y_low
+			newImageDimension.X_index = i
+			newImageDimension.Y_index = j
 			newImageDimensions = append(newImageDimensions, newImageDimension)
 			num++
 		}
@@ -150,7 +152,7 @@ func RunOneSkipPass(pixelArray [][]uint16, imageDimensions models.ImageDimension
 		x_val += skip_pixel_size
 	}
 
-	slog.Debug("Starting Horizontal Edge Vertical Middle")
+	// slog.Debug("Starting Horizontal Edge Vertical Middle")
 	// Handling Horizontal Edge Vertical Middle pixels (4/6s in a grid)
 	x_val = imageDimensions.X_low + skip_pixel_size/2
 	for i := imageDimensions.X_start + skip/2; i < imageDimensions.X_size-skip; i += skip {
@@ -169,7 +171,7 @@ func RunOneSkipPass(pixelArray [][]uint16, imageDimensions models.ImageDimension
 	}
 
 	// Handling Horizontal middle and Verticle Middle pixels
-	slog.Debug("Starting Horizontal Middle Vertical Middle")
+	// slog.Debug("Starting Horizontal Middle Vertical Middle")
 
 	x_val = imageDimensions.X_low + skip_pixel_size/2
 	for i := imageDimensions.X_start + skip/2; i < imageDimensions.X_size-skip; i += skip {

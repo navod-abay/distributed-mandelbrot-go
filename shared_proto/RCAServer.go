@@ -46,7 +46,8 @@ func (servre *RpcServer) transformImageDimensions(imageDimensions models.ImageDi
 	return imageDimensions
 }
 
-func (server *RpcServer) calculateSubImage(imageDimensions models.ImageDimensions, init_skip int32, c chan [][]uint16, outerWaitGroup *sync.WaitGroup, identityTime string) {
+func (server *RpcServer) calculateSubImage(imageDimensions models.ImageDimensions, init_skip int32, c chan models.ImageFragment, outerWaitGroup *sync.WaitGroup, identityTime string) {
+	defer outerWaitGroup.Done()
 	imageDimensions = server.transformImageDimensions(imageDimensions)
 	slog.Debug("X_low: " + strconv.FormatFloat(imageDimensions.X_low, 'f', -1, 64))
 	slog.Debug("Y_low: " + strconv.FormatFloat(imageDimensions.Y_low, 'f', -1, 64))
@@ -58,19 +59,23 @@ func (server *RpcServer) calculateSubImage(imageDimensions models.ImageDimension
 	for i := range imageDimensions.X_size {
 		pixelArray[i] = make([]uint16, imageDimensions.Y_size)
 	}
-	result := solvers.SubImageOptimizedCalculation(imageDimensions, pixelArray, init_skip, outerWaitGroup, true)
 	var wg sync.WaitGroup
 	wg.Add(1)
+	result := solvers.SubImageOptimizedCalculation(imageDimensions, pixelArray, init_skip, &wg, true)
 	filename := strconv.Itoa(server.Port) + "/" + identityTime + "/" + rand.Text() + ".bmp"
-	writers.WriteToBmpFile(result, imageDimensions, filename, 1000, &wg)
 	wg.Wait()
-	c <- result
+	wg.Add(1)
+	go writers.WriteToBmpFile(result, imageDimensions, filename, 1000, &wg)
+	wg.Wait()
+	slog.Debug("Going to write result to channel")
+
+	c <- models.ImageFragment{Result: result, X_Index: imageDimensions.X_index, Y_Index: imageDimensions.Y_index}
+	slog.Debug("Result written to channel from the goroutine")
 }
 
-func (server *RpcServer) StartWork(startWorkArgs StartWorkArgs, result *int) error {
+func (server *RpcServer) StartWork(startWorkArgs StartWorkArgs, results *[]models.ImageFragment) error {
 	subdivision_level := startWorkArgs.Subdivision_level
 	fmt.Print("Running with parallelization")
-	var waitGroup sync.WaitGroup // Wait group to wait for parallelized sub images
 	var init_skip int32
 	if subdivision_level == 0 {
 		init_skip = 1
@@ -78,16 +83,22 @@ func (server *RpcServer) StartWork(startWorkArgs StartWorkArgs, result *int) err
 		init_skip = int32(1) << (subdivision_level / 2)
 	}
 	subImageDimensionsArray := startWorkArgs.ImageDimensions
-	c := make(chan [][]uint16)
+	c := make(chan models.ImageFragment, len(subImageDimensionsArray))
 	timestamp := time.Now().GoString()
+	var waitGroup sync.WaitGroup // Wait group to wait for parallelized sub images
 	for _, subImageDimension := range subImageDimensionsArray {
 		waitGroup.Add(1)
 		go server.calculateSubImage(subImageDimension, init_skip, c, &waitGroup, timestamp)
 	}
+	slog.Debug("Waiting for calculating subimages")
 	waitGroup.Wait()
-	resultArray := make([][][]uint16, len(subImageDimensionsArray))
+	close(c)
+	slog.Debug("Finished calculating subimages")
+	resultArray := make([]models.ImageFragment, len(subImageDimensionsArray))
 	for result := range c {
 		resultArray[0] = result
 	}
+	*results = resultArray
+	slog.Debug("Finished writing Calculating subimages")
 	return nil
 }

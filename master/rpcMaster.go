@@ -27,25 +27,31 @@ func RpcHandshake(client *rpc.Client, wg *sync.WaitGroup, c chan RPCClientIdenti
 	return nil
 }
 
-func sendRPCWorkRequest(id int, client *rpc.Client, subImages []models.ImageDimensions, subdivision_levels int, wg *sync.WaitGroup) {
+func sendRPCWorkRequest(id int, client *rpc.Client, subImages []models.ImageDimensions, subdivision_levels int, wg *sync.WaitGroup, c chan models.ImageFragment) {
 	defer wg.Done()
 	fmt.Println("Sending work request to: " + strconv.Itoa(id) + "\n")
 	startWorkArgs := sharedproto.StartWorkArgs{ImageDimensions: subImages, Subdivision_level: subdivision_levels}
-	var result *int
-	err := client.Call("RpcServer.StartWork", startWorkArgs, result)
+	var results []models.ImageFragment
+	err := client.Call("RpcServer.StartWork", startWorkArgs, &results)
+	slog.Debug("RCP call returned")
 	if err != nil {
 		fmt.Println(err.Error())
 		return
 	}
+	slog.Debug("Gathered completed models for client", "clientID: ", id, "subimage count", len(results))
+	for i := range results {
+		c <- results[i]
+	}
 
 }
 
-func delegateRPC(subImages []models.ImageDimensions, subdivision_levels int, clients map[int]RPCClientIdentifier) {
+func delegateRPC(subImages []models.ImageDimensions, subdivision_levels int, clients map[int]RPCClientIdentifier, totalProcessors int) {
 	index := 0
 	var wg sync.WaitGroup
+	c := make(chan models.ImageFragment, totalProcessors)
 	for id, client := range clients {
 		wg.Add(1)
-		go sendRPCWorkRequest(id, client.client, subImages[index:index+int(client.numProcesses)], subdivision_levels, &wg)
+		go sendRPCWorkRequest(id, client.client, subImages[index:index+int(client.numProcesses)], subdivision_levels, &wg, c)
 	}
 	wg.Wait()
 	fmt.Println("Finished delegating work")
@@ -82,6 +88,6 @@ func RpcFlow(IPs []string) {
 		totalProcessors += int(client.numProcesses)
 	}
 	subImageDimensionsArray := solvers.GetSubImageDimensionsArrays(imageDimensions, totalProcessors)
-	delegateRPC(subImageDimensionsArray, subdivision_levels, identities)
+	delegateRPC(subImageDimensionsArray, subdivision_levels, identities, totalProcessors)
 	fmt.Printf("Exiting master node\n")
 }

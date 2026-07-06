@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"fmt"
 	"log"
-	"log/slog"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -31,9 +30,7 @@ func WriteToCSVNoColor(pixelArray [][]bool) {
 			}
 			writer.WriteString("\n")
 		}
-		slog.Debug("Finished writing to the buffer")
 		writer.Flush()
-		slog.Debug("Flushed the buffer")
 	} else {
 		log.Fatal(err)
 	}
@@ -54,9 +51,7 @@ func WriteToCSV(pixelArray [][]uint16, writeWaitGroup *sync.WaitGroup) {
 			}
 			writer.WriteString("\n")
 		}
-		slog.Debug("Finished writing to the buffer")
 		writer.Flush()
-		slog.Debug("Flushed the buffer")
 	} else {
 		log.Fatal(err)
 	}
@@ -68,7 +63,7 @@ func SaveCsvSnapshot(pixelArray [][]uint16, imageDimensions models.ImageDimensio
 	currentTime := time.Now()
 	fileName := currentTime.Format(time.RFC3339Nano) + ".csv"
 	snapshotFilepath := filepath.Join("snapshots", fileName)
-	slog.Debug("Saving a csv snapshot", "skip", skip)
+	// slog.Debug("Saving a csv snapshot", "skip", skip)
 	f, err := os.Create(snapshotFilepath)
 	writer := bufio.NewWriter(f)
 
@@ -79,9 +74,7 @@ func SaveCsvSnapshot(pixelArray [][]uint16, imageDimensions models.ImageDimensio
 			}
 			writer.WriteString("\n")
 		}
-		slog.Debug("Finished writing to the buffer")
 		writer.Flush()
-		slog.Debug("Flushed the buffer")
 	} else {
 		log.Fatal(err)
 	}

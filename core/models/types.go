@@ -19,11 +19,21 @@ type ImageDimensions struct {
 	Orig_y_size  int32
 	Orig_x_size  int32
 
+	// For merging after
+	X_index int32
+	Y_index int32
+
 	// Color Information
 	HueUpper int32
 	HueLower int32
 	Sat      int32
 	Value    int32
+}
+
+type ImageFragment struct {
+	Result  [][]uint16
+	X_Index int32
+	Y_Index int32
 }
 
 type Index struct {
