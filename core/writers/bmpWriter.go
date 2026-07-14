@@ -32,6 +32,72 @@ type BmpHeaderDetails struct {
 	endInfoHeader  []int32
 }
 
+func WriteFragmentsToBmp(fragments []models.ImageFragment, filename string, origImageDimension models.ImageDimensions, writeWaitGroup *sync.WaitGroup) {
+	defer writeWaitGroup.Done()
+	slog.Debug("Total fragments", "total Fragments", len(fragments))
+	fragmentPointers := make([][]int, len(fragments)) // dynamic sizing because there are not much fragments
+	for i := range len(fragmentPointers) {            // an n x n matrix even though have a total of n fragments. Won't be a memory issue because it is insignificant
+		fragmentPointers[i] = make([]int, len(fragments))
+	}
+	var maxXIndex int = 0
+	var maxYIndex int = 0
+	for index, fragment := range fragments {
+		if fragment.X_Index > int32(maxXIndex) {
+			maxXIndex = int(fragment.X_Index)
+		}
+		if fragment.Y_Index > int32(maxYIndex) {
+			maxYIndex = int(fragment.Y_Index)
+		}
+		fragmentPointers[fragment.X_Index][fragment.Y_Index] = index
+	}
+	slog.Debug("Finished organizgin fragments", "maxXIndex", maxXIndex, "maxYIndex", maxXIndex, "fragmentPointers", fragmentPointers)
+	fmt.Println("Writing output to bmp file")
+	dir := filepath.Dir("output/" + filename)
+	dir_err := os.MkdirAll(dir, os.ModePerm)
+	if dir_err != nil {
+		slog.Error("Failed to make directory to store files")
+		return
+	}
+	bmp_f, err := os.OpenFile("output/"+filename, os.O_WRONLY|os.O_CREATE, 0644)
+	if err != nil {
+		fmt.Println("Failed to opena  writer for the bmp file")
+		slog.Error(err.Error())
+	} else {
+		WriteBmpHeader(bmp_f, calculateBMPHeaderDetailsFromFragments(origImageDimension))
+		writer := bufio.NewWriter(bmp_f)
+		for x_index := range maxXIndex {
+			for y_index := range maxYIndex {
+				pixelArray := fragments[fragmentPointers[x_index][y_index]].Result
+				slog.Debug("Writing Image Fragmet", "X_index", x_index, "y_index", y_index, "len(pixelArray)", len(pixelArray))
+				for i := range pixelArray[0] {
+					for j := range pixelArray {
+						writer.Write(colors.MapIterationsToUint16Colors(pixelArray[j][i], origImageDimension.HueUpper, origImageDimension.HueLower, origImageDimension.Sat, origImageDimension.Value))
+					}
+				}
+			}
+		}
+
+		writer.Flush()
+	}
+	defer bmp_f.Close()
+}
+
+func calculateBMPHeaderDetailsFromFragments(origImageDimension models.ImageDimensions) BmpHeaderDetails {
+	var details BmpHeaderDetails
+	details.infoHeaderSize = 40
+	details.width = int32(origImageDimension.X_size)
+	details.height = int32(origImageDimension.Y_size)
+	details.planes = 1
+	details.compression = 0
+	details.imageSize = 0
+	details.bitCount = 16
+	details.dataOffset = 54
+	details.reserved = 0
+	details.fileSize = 2*uint32(details.width)*uint32(details.height) + 54
+	fmt.Println("FileSize: ", details.fileSize)
+	details.endInfoHeader = []int32{0, 0, 0, 0, 0, 0}
+	return details
+}
 func WriteBmpHeader(file *os.File, headerDetails BmpHeaderDetails) {
 	slog.Debug("Writing tp BMP file", "headerDetails", headerDetails)
 	bufferedWriter := bufio.NewWriter(file)

@@ -10,6 +10,7 @@ import (
 	generate "github.com/navod-abay/mandelbrotset-go/core"
 	"github.com/navod-abay/mandelbrotset-go/core/models"
 	"github.com/navod-abay/mandelbrotset-go/core/solvers"
+	"github.com/navod-abay/mandelbrotset-go/core/writers"
 	sharedproto "github.com/navod-abay/mandelbrotset-go/shared_proto"
 )
 
@@ -40,21 +41,31 @@ func sendRPCWorkRequest(id int, client *rpc.Client, subImages []models.ImageDime
 	}
 	slog.Debug("Gathered completed models for client", "clientID: ", id, "subimage count", len(results))
 	for i := range results {
+		slog.Debug("Returned image fragment from the client", "imageFragment.X_Index", results[i].X_Index, "imageFragment.Y_Index", results[i].Y_Index)
 		c <- results[i]
 	}
 
 }
 
-func delegateRPC(subImages []models.ImageDimensions, subdivision_levels int, clients map[int]RPCClientIdentifier, totalProcessors int) {
+func delegateRPC(subImages []models.ImageDimensions, subdivision_levels int, clients map[int]RPCClientIdentifier, totalProcessors int) []models.ImageFragment {
 	index := 0
 	var wg sync.WaitGroup
 	c := make(chan models.ImageFragment, totalProcessors)
 	for id, client := range clients {
 		wg.Add(1)
-		go sendRPCWorkRequest(id, client.client, subImages[index:index+int(client.numProcesses)], subdivision_levels, &wg, c)
+		clientImageSet := subImages[index : index+int(client.numProcesses)]
+		slog.Debug("Going to send RPC request to client", "client", strconv.Itoa(id), "numSubImages", strconv.Itoa(len(clientImageSet)))
+		go sendRPCWorkRequest(id, client.client, clientImageSet, subdivision_levels, &wg, c)
+		index += int(client.numProcesses)
 	}
 	wg.Wait()
+	close(c)
+	var fragments []models.ImageFragment
+	for fragment := range c {
+		fragments = append(fragments, fragment)
+	}
 	fmt.Println("Finished delegating work")
+	return fragments
 }
 
 func RpcFlow(IPs []string) {
@@ -88,6 +99,10 @@ func RpcFlow(IPs []string) {
 		totalProcessors += int(client.numProcesses)
 	}
 	subImageDimensionsArray := solvers.GetSubImageDimensionsArrays(imageDimensions, totalProcessors)
-	delegateRPC(subImageDimensionsArray, subdivision_levels, identities, totalProcessors)
+	fragments := delegateRPC(subImageDimensionsArray, subdivision_levels, identities, totalProcessors)
+	var writeWaitGroup sync.WaitGroup
+	writeWaitGroup.Add(1)
+	writers.WriteFragmentsToBmp(fragments, "output.bmp", imageDimensions, &writeWaitGroup)
+	writeWaitGroup.Wait()
 	fmt.Printf("Exiting master node\n")
 }

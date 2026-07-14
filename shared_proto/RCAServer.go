@@ -74,6 +74,7 @@ func (server *RpcServer) calculateSubImage(imageDimensions models.ImageDimension
 }
 
 func (server *RpcServer) StartWork(startWorkArgs StartWorkArgs, results *[]models.ImageFragment) error {
+	slog.Debug("Starting Work", "len(startworkArgs.imageDimensions)", len(startWorkArgs.ImageDimensions))
 	subdivision_level := startWorkArgs.Subdivision_level
 	fmt.Print("Running with parallelization")
 	var init_skip int32
@@ -83,6 +84,9 @@ func (server *RpcServer) StartWork(startWorkArgs StartWorkArgs, results *[]model
 		init_skip = int32(1) << (subdivision_level / 2)
 	}
 	subImageDimensionsArray := startWorkArgs.ImageDimensions
+	for _, subImageDimension := range subImageDimensionsArray {
+		slog.Debug("Checking subImage index values", "subImageDimension.X_Index", subImageDimension.X_index, "subImageDimension.Y_index", subImageDimension.Y_index)
+	}
 	c := make(chan models.ImageFragment, len(subImageDimensionsArray))
 	timestamp := time.Now().GoString()
 	var waitGroup sync.WaitGroup // Wait group to wait for parallelized sub images
@@ -95,9 +99,15 @@ func (server *RpcServer) StartWork(startWorkArgs StartWorkArgs, results *[]model
 	close(c)
 	slog.Debug("Finished calculating subimages")
 	resultArray := make([]models.ImageFragment, len(subImageDimensionsArray))
+	index := 0
 	for result := range c {
-		resultArray[0] = result
+		resultArray[index] = result
+		index++
 	}
+	for i := range resultArray {
+		slog.Debug("Image fragment to be sent from the client", "imageFragment.X_Index", resultArray[i].X_Index, "imageFragment.Y_Index", resultArray[i].Y_Index)
+	}
+
 	*results = resultArray
 	slog.Debug("Finished writing Calculating subimages")
 	return nil
