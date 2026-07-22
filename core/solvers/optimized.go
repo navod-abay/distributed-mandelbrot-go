@@ -190,6 +190,8 @@ func RunOneSkipPass(pixelArray [][]uint16, imageDimensions models.ImageDimension
 	if saveSnapShotsFlag {
 		waitGroup.Add(1)
 		go writers.SaveCsvSnapshot(pixelArray, imageDimensions, skip, waitGroup)
+		waitGroup.Add(1)
+		go writers.SaveSnapShotBMP(pixelArray, imageDimensions, int(skip), waitGroup)
 	}
 }
 
@@ -220,6 +222,8 @@ func OptimizedCalculation(imageDimensions models.ImageDimensions, subdivision_le
 	}
 	println("Finished initializing the array and calculating the initial pass ")
 	if saveSnapShotsFlag {
+		waitGroup.Add(1)
+		go writers.SaveSnapShotBMP(pixelArray, imageDimensions, int(init_skip), &waitGroup)
 		waitGroup.Add(1)
 		go writers.SaveCsvSnapshot(pixelArray, imageDimensions, init_skip, &waitGroup)
 	}
@@ -253,6 +257,8 @@ func SubImageOptimizedCalculation(imageDimensions models.ImageDimensions, pixelA
 	}
 	fmt.Printf("Finished initializing the array and calculating the initial pass. saveSnapshotFlag %v ", saveSnapShotsFlag)
 	if saveSnapShotsFlag {
+		waitGroup.Add(1)
+		go writers.SaveSnapShotBMP(pixelArray, imageDimensions, int(init_skip), &waitGroup)
 		waitGroup.Add(1)
 		go writers.SaveCsvSnapshot(pixelArray, imageDimensions, init_skip, &waitGroup)
 	}

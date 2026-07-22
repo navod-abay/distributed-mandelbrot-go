@@ -185,9 +185,10 @@ func WriteToBmpFile(pixelArray [][]uint16, imageDimensions models.ImageDimension
 	defer bmp_f.Close()
 }
 
-func SaveSnapShotBMP(pixelArray [][]uint16, imageDimensions models.ImageDimensions, skip int) error {
+func SaveSnapShotBMP(pixelArray [][]uint16, imageDimensions models.ImageDimensions, skip int, waitgroup *sync.WaitGroup) error {
+	defer waitgroup.Done()
 	currentTime := time.Now()
-	fileName := currentTime.Format(time.RFC3339) + ".bmp"
+	fileName := currentTime.Format(time.RFC3339Nano) + ".bmp"
 	snapshotFilepath := filepath.Join("snapshots", fileName)
 	slog.Debug("Saving a snapshot", "skip", skip)
 	bmp_f, err := os.Create(snapshotFilepath)
