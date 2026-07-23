@@ -26,22 +26,23 @@ provider "google" {
 
 
 data "google_client_config" "current" {
-    
+
 }
 
 resource "google_service_account" "benchmark_runner" {
-  account_id = "benchmark-runner-sa"
+  account_id   = "benchmark-runner-sa"
   display_name = "Service Account"
 }
 
 resource "google_project_iam_member" "secret_accessor" {
   project = data.google_client_config.current.project
-  role = "roles/secretmanager.secretAccessor"
-  member = "serviceAccount:${google_service_account.benchmark_runner.email}"
+  role    = "roles/secretmanager.secretAccessor"
+  member  = "serviceAccount:${google_service_account.benchmark_runner.email}"
 }
 
 resource "google_compute_network" "vpc_network" {
-  name = "terraform-network"
+  name                    = "terraform-network"
+  auto-create-subnetworks = false
 }
 
 resource "google_compute_firewall" "allow_iap_ingress" {
@@ -60,15 +61,15 @@ resource "google_compute_firewall" "allow_iap_ingress" {
 }
 
 resource "google_compute_router" "router" {
-  name = "my-router"
+  name    = "my-router"
   network = google_compute_network.vpc_network.name
 }
 
 resource "google_compute_router_nat" "nat" {
-  name = "my-nat"
+  name   = "my-nat"
   router = google_compute_router.router.name
 
-  nat_ip_allocate_option = "AUTO_ONLY"
+  nat_ip_allocate_option             = "AUTO_ONLY"
   source_subnetwork_ip_ranges_to_nat = "ALL_SUBNETWORKS_ALL_IP_RANGES"
 }
 
@@ -88,20 +89,20 @@ resource "google_secret_manager_secret" "github_private_key" {
 }
 
 resource "google_secret_manager_secret_version" "github_private_key_v1" {
-  secret = google_secret_manager_secret.github_private_key.id
+  secret      = google_secret_manager_secret.github_private_key.id
   secret_data = data.local_file.github_private_key.content
 }
 
 resource "google_secret_manager_secret_iam_member" "vm_accessor" {
   secret_id = google_secret_manager_secret.github_private_key.id
-  role = "roles/secretmanager.secretAccessor"
-  member = "serviceAccount:${google_service_account.benchmark_runner.email}"
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${google_service_account.benchmark_runner.email}"
 }
 
 
 resource "google_compute_instance" "master" {
   name         = "master-node"
-  machine_type = "e2-standard-16"
+  machine_type = "e2-standard-2"
 
   scheduling {
     provisioning_model          = "SPOT"
@@ -121,18 +122,18 @@ resource "google_compute_instance" "master" {
   }
 
   service_account {
-    email = google_service_account.benchmark_runner.email
+    email  = google_service_account.benchmark_runner.email
     scopes = ["https://www.googleapis.com/auth/cloud-platform"]
   }
 
   metadata = {
-    TF_VAR_client_count = var.client_count
-    TF_VAR_vpc_name = google_compute_network.vpc_network.name
+    TF_VAR_client_count    = var.client_count
+    TF_VAR_vpc_name        = google_compute_network.vpc_network.name
     TF_VAR_subnetwork_name = google_compute_subnetwork.private_subnet.name
-    TF_VAR_project_name = data.google_client_config.current.project 
+    TF_VAR_project_name    = data.google_client_config.current.project
   }
 
-  metadata_startup_script =  file("${path.module}/bootstrap_master.sh")
+  metadata_startup_script = file("${path.module}/bootstrap_master.sh")
 }
 
 output "master_ip" {
