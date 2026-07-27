@@ -54,11 +54,22 @@ resource "google_compute_instance" "client" {
   }
 }
 
-
-
-output "client_ip" {
+output "client_ips" {
   value       = google_compute_instance.client[*].network_interface[0].network_ip
   description = "IP adress of the client node"
   sensitive   = false
   depends_on  = [google_compute_instance.client]
+}
+
+
+resource "local_file" "ansible_inventory" {
+  content = templatefile("${path.module}/hosts.ini.tftpl", {
+    worker_ips = {
+      for instance in google_compute_instance.workers :
+      instance.name => instance.network_interface[0].access_config[0].nat_ip
+    }
+  })
+  
+  filename        = "${path.module}/inventory.ini"
+  file_permission = "0644"
 }

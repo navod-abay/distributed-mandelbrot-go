@@ -1,35 +1,46 @@
 - name: Run Clients
-- hosts: Clients
+  hosts: client
 
-- tasks:
-  - name: Copy the key file
-    ansible.builtin.copy:
-    src: /root/mandelbrot/private_key
-    dest: /root/mandelbrot/private_key
+  tasks:
+    - name: Copy the key file
+      ansible.builtin.copy:
+        src: /root/mandelbrot/private_key
+        dest: /root/mandelbrot/private_key
 
-  - name: Change file permissions (chmod 644)
-    ansible.builtin.file:
-      path: /path/to/file.txt
-      state: file
-      mode: '0600'
+    - name: Change file permissions (chmod 644)
+      ansible.builtin.file:
+        path: /path/to/file.txt
+        state: file
+        mode: '0600'
 
-  - name: Install git
-    ansible.builtin.apt:
-      name: git
-      update_cache: yes
-    become: yes
+    - name: Install git
+      ansible.builtin.apt:
+        name: git
+        update_cache: yes
+      become: yes
 
-  - name: Clone the repo
-    ansible.builtin.git:
-      repo: https://github.com/navod-abay/distributed-mandelbrot-go
-      dest: /root/mandelbort
-      become: True
-      key-file: /root/mandelbrot/private_key   
-      vesion: master
+    - name: Clone the repo
+      ansible.builtin.git:
+        repo: https://github.com/navod-abay/distributed-mandelbrot-go
+        dest: /root/mandelbort
+        become: True
+        key-file: /root/mandelbrot/private_key   
+        vesion: master
 
-  - name: Compile go
-    cmd: go build -o build/mandelbrotset .
-    chdir: /root/mandelbrot/client
-  
-  - name: run build
-    cmd: ./build/mandelbortset -protocolType=RPC 
+    - name: Compile go
+      ansible.builtin.command: 
+        cmd: go build -o build/mandelbrotset .
+        chdir: /root/mandelbrot/client
+    
+    - name: run build
+      ansible.builtin.command: 
+        cmd: ./build/mandelbortset -protocolType=RPC -port=8080
+
+- name: Run master
+  hosts: localhost
+
+  tasks:
+    - name: Run master
+      ansible.builtin.command:
+        cmd: go build -o build/mandelbrotset .
+        chdir: /root/mandelbrot/client

@@ -59,3 +59,10 @@ pwd
 terraform init -input=false
 terraform plan -out=tfplan -input=false
 terraform apply tfplan
+
+ansible-galaxy collection install google.cloud
+
+# Install required Google authentication libraries
+pip install google-auth google-cloud-secret-manager
+
+ansible-playbook -i inventory.ini playbook.yml

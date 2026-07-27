@@ -40,9 +40,10 @@ resource "google_project_iam_member" "secret_accessor" {
   member  = "serviceAccount:${google_service_account.benchmark_runner.email}"
 }
 
+
 resource "google_compute_network" "vpc_network" {
   name                    = "terraform-network"
-  auto-create-subnetworks = false
+  auto_create_subnetworks = false
 }
 
 resource "google_compute_firewall" "allow_iap_ingress" {
