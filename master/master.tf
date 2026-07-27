@@ -57,7 +57,7 @@ resource "google_compute_instance" "client" {
 
 
 output "client_ip" {
-  value       = google_compute_instance.client[0].network_interface[0].network_ip
+  value       = google_compute_instance.client[*].network_interface[0].network_ip
   description = "IP adress of the client node"
   sensitive   = false
   depends_on  = [google_compute_instance.client]
