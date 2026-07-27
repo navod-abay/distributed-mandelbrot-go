@@ -58,7 +58,8 @@ pwd
 
 terraform init -input=false
 terraform plan -out=tfplan -input=false
-terraform apply tfplan
+terraform apply tfplan 
+terraform output -json
 
 ansible-galaxy collection install google.cloud
 
