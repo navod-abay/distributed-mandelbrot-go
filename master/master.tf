@@ -65,7 +65,7 @@ output "client_ips" {
 resource "local_file" "ansible_inventory" {
   content = templatefile("${path.module}/hosts.ini.tftpl", {
     worker_ips = {
-      for instance in google_compute_instance.workers :
+      for instance in google_compute_instance.client :
       instance.name => instance.network_interface[0].access_config[0].nat_ip
     }
   })
