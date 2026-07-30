@@ -52,6 +52,10 @@ resource "google_compute_instance" "client" {
       image = "debian-cloud/debian-11"
     }
   }
+
+  metadata = {
+    ssh-keys = "ansible:${file("${path.module}/keys/client_key.pub")}"
+  }
 }
 
 output "client_ips" {
