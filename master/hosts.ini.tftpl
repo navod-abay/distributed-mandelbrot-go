@@ -5,3 +5,7 @@
 %{ for name, ip in worker_ips ~}
 ${name} ansible_host=${ip} ansible_user=root
 %{ endfor ~}
+
+[client:vars]
+ansible_ssh_private_key_file=keys/client_key
+ansible_ssh_common_args='-o StrictHostKeyChecking=no'
