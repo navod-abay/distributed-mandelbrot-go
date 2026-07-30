@@ -34,7 +34,7 @@ echo -e "Ansible installed.\n\n\n"
 
 
 apt-get install -y git
-echo -e "Git installed.\n\n\n"
+echo -e "Git installed.\n\n\n"  
 
 mkdir /root/mandelbrot
 # Get private key from keystore
@@ -55,6 +55,10 @@ export GIT_SSH_COMMAND="ssh -i /root/mandelbrot/private_key -o BatchMode=yes"
 cd repo/master
 
 pwd
+
+mkdir keys
+
+ssh-keygen -t ed25519 -f keys/client_key -N "" -q
 
 terraform init -input=false
 terraform plan -out=tfplan -input=false

@@ -34,9 +34,9 @@ resource "google_service_account" "benchmark_runner" {
   display_name = "Service Account"
 }
 
-resource "google_project_iam_member" "secret_accessor" {
+resource "google_project_iam_member" "compute_admin" {
   project = data.google_client_config.current.project
-  role    = "roles/secretmanager.secretAccessor"
+  role    = "roles/compute.instanceAdmin.v1"
   member  = "serviceAccount:${google_service_account.benchmark_runner.email}"
 }
 
@@ -48,17 +48,37 @@ resource "google_compute_network" "vpc_network" {
 
 resource "google_compute_firewall" "allow_iap_ingress" {
   name    = "allow-ingress-from-iap"
-  network = google_compute_network.vpc_network.name # Replace with your VPC network name
+  network = google_compute_network.vpc_network.name 
 
   direction     = "INGRESS"
   priority      = 1000
   source_ranges = ["35.235.240.0/20"]
 
-  # Protocols and ports to allow through the IAP tunnel
   allow {
     protocol = "tcp"
-    ports    = ["22", "3389"] # 22 for SSH, 3389 for RDP
+    ports    = ["22", "3389"] 
   }
+}
+
+resource "google_compute_firewall" "allow_internal" {
+  name    = "${google_compute_network.vpc_network.name}-allow-internal"
+  network = google_compute_network.vpc_network.name
+
+  allow {
+    protocol = "icmp"
+  }
+
+  allow {
+    protocol = "tcp"
+    ports    = ["0-65535"]
+  }
+
+  allow {
+    protocol = "udp"
+    ports    = ["0-65535"]
+  }
+
+  source_ranges = ["192.168.1.0/24"]
 }
 
 resource "google_compute_router" "router" {
@@ -99,7 +119,6 @@ resource "google_secret_manager_secret_iam_member" "vm_accessor" {
   role      = "roles/secretmanager.secretAccessor"
   member    = "serviceAccount:${google_service_account.benchmark_runner.email}"
 }
-
 
 resource "google_compute_instance" "master" {
   name         = "master-node"
