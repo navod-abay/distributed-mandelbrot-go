@@ -40,7 +40,11 @@
   hosts: localhost
 
   tasks:
-    - name: Run master
+    - name: build master
       ansible.builtin.command:
         cmd: go build -o build/mandelbrotset .
-        chdir: /root/mandelbrot/client
+        chdir: /root/mandelbrot/master
+    
+    - name: run master
+      ansible.builtin.command:
+        cmd: ./build/mandelbrotset -protocolType=RPC
