@@ -29,8 +29,6 @@ apt-get update &&
 apt-get install -y terraform
 echo -e "Terraform installed.\n\n\n"
 
-apt-get install -y  ansible 
-echo -e "Ansible installed.\n\n\n"
 
 
 apt-get install -y git
@@ -65,9 +63,14 @@ terraform plan -out=tfplan -input=false
 terraform apply tfplan 
 terraform output -json
 
-ansible-galaxy collection install google.cloud
 
+apt-get install -y  ansible 
+echo -e "Ansible installed.\n\n\n"
+
+ansible-galaxy collection install google.cloud
 # Install required Google authentication libraries
 pip install google-auth google-cloud-secret-manager
 
+# Sleep to ensure the key is copied from metadata
+sleep 5 
 ansible-playbook -i inventory.ini playbook.yml

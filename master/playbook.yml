@@ -4,12 +4,12 @@
   tasks:
     - name: Copy the key file
       ansible.builtin.copy:
-        src: /root/mandelbrot/private_key
-        dest: /root/mandelbrot/private_key
+        src: /home/ansible/mandelbrot/private_key
+        dest: /home/ansible/mandelbrot/private_key
 
     - name: Change file permissions (chmod 644)
       ansible.builtin.file:
-        path: /path/to/file.txt
+        path: /home/ansible/mandelbrot/private_key
         state: file
         mode: '0600'
 
@@ -24,13 +24,13 @@
         repo: https://github.com/navod-abay/distributed-mandelbrot-go
         dest: /root/mandelbort
         become: True
-        key-file: /root/mandelbrot/private_key   
+        key-file: /home/ansible/mandelbrot/private_key   
         vesion: master
 
     - name: Compile go
       ansible.builtin.command: 
         cmd: go build -o build/mandelbrotset .
-        chdir: /root/mandelbrot/client
+        chdir: /home/ansible/mandelbrot/client
     
     - name: run build
       ansible.builtin.command: 
