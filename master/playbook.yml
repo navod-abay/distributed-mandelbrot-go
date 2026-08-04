@@ -26,7 +26,7 @@
 
     - name: Download official Go tarball
       ansible.builtin.get_url:
-        url: "https://go.dev/dl/go1.22.5.linux-amd64.tar.gz"
+        url: "https://go.dev/dl/go1.26.5.linux-amd64.tar.gz"
         dest: "/tmp/go1.22.5.linux-amd64.tar.gz"
         mode: '0644'
 
@@ -61,7 +61,7 @@
 
     - name: Compile go
       ansible.builtin.command: 
-        cmd: go build -o build/mandelbrotset .
+        cmd: /usr/local/go/bin/go build -o /home/ansible/mandelbrot/repo/build/mandelbrotset .
         chdir: /home/ansible/mandelbrot/repo/client
     
     - name: run build
@@ -72,9 +72,31 @@
   hosts: localhost
 
   tasks:
+    - name: Download official Go tarball
+      ansible.builtin.get_url:
+        url: "https://go.dev/dl/go1.26.5.linux-amd64.tar.gz"
+        dest: "/tmp/go1.22.5.linux-amd64.tar.gz"
+        mode: '0644'
+
+    - name: Extract Go to /usr/local
+      ansible.builtin.unarchive:
+        src: "/tmp/go1.22.5.linux-amd64.tar.gz"
+        dest: /usr/local
+        remote_src: yes
+        creates: /usr/local/go/bin/go
+      become: true
+
+    - name: Add Go to global PATH
+      ansible.builtin.copy:
+        dest: /etc/profile.d/golang.sh
+        content: |
+          export PATH=$PATH:/usr/local/go/bin
+        mode: '0644'
+      become: true
+
     - name: build master
       ansible.builtin.command:
-        cmd: go build -o build/mandelbrotset .
+        cmd: /usr/local/go/bin/gogo build -o build/mandelbrotset .
         chdir: /root/mandelbrot/master
     
     - name: run master
