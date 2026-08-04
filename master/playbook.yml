@@ -24,14 +24,32 @@
         update_cache: yes
       become: yes
 
+    - name: Add go repository
+      ansible.builtin.apt_repository:
+        repo: "deb http://deb.debian.org/debian bullseye-backports main"
+        state: present
+        filename: bullseye-backports
+      become: true
+
+    - name: Install go
+      ansible.builtin.apt:
+        name: golang-go
+        target_package: "golang-go/bullseye-backports"
+        update_cache: yes
+      become: true
+
     - name: Clone the repo
       ansible.builtin.git:
-        repo: git@github.com/navod-abay/distributed-mandelbrot-go.git
+        repo: git@github.com:navod-abay/distributed-mandelbrot-go.git
         dest: /home/ansible/mandelbrot/repo
         key_file: /home/ansible/mandelbrot/private_key   
         version: master
-        host_key: true
-      become: True
+        accept_hostkey: true
+
+    - name: Create Directory
+      ansible.builtin.file:
+        path: /home/ansible/mandelbrot/repo/build
+        state: directory
 
     - name: Compile go
       ansible.builtin.command: 
