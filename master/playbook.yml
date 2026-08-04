@@ -24,18 +24,26 @@
         update_cache: yes
       become: yes
 
-    - name: Add go repository
-      ansible.builtin.apt_repository:
-        repo: "deb http://deb.debian.org/debian bullseye-backports main"
-        state: present
-        filename: bullseye-backports
+    - name: Download official Go tarball
+      ansible.builtin.get_url:
+        url: "https://go.dev/dl/go1.22.5.linux-amd64.tar.gz"
+        dest: "/tmp/go1.22.5.linux-amd64.tar.gz"
+        mode: '0644'
+
+    - name: Extract Go to /usr/local
+      ansible.builtin.unarchive:
+        src: "/tmp/go1.22.5.linux-amd64.tar.gz"
+        dest: /usr/local
+        remote_src: yes
+        creates: /usr/local/go/bin/go
       become: true
 
-    - name: Install go
-      ansible.builtin.apt:
-        name: golang-go
-        target_package: "golang-go/bullseye-backports"
-        update_cache: yes
+    - name: Add Go to global PATH
+      ansible.builtin.copy:
+        dest: /etc/profile.d/golang.sh
+        content: |
+          export PATH=$PATH:/usr/local/go/bin
+        mode: '0644'
       become: true
 
     - name: Clone the repo
