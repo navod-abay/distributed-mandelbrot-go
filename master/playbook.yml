@@ -4,7 +4,7 @@
   tasks:
     - name: Copy the key file
       ansible.builtin.copy:
-        src: /home/ansible/mandelbrot/private_key
+        src: /root/mandelbrot/private_key
         dest: /home/ansible/mandelbrot/private_key
 
     - name: Change file permissions (chmod 644)
