@@ -3,7 +3,7 @@
 
 [client]
 %{ for name, ip in worker_ips ~}
-${name} ansible_host=${ip} ansible_user=root
+${name} ansible_host=${ip}
 %{ endfor ~}
 
 [client:vars]

@@ -51,7 +51,7 @@ export GIT_SSH_COMMAND="ssh -i /root/mandelbrot/private_key -o BatchMode=yes"
 
     mkdir repo
     git clone git@github.com:navod-abay/distributed-mandelbrot-go.git repo
-
+    
 cd repo/master
 
 pwd
