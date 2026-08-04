@@ -2,6 +2,11 @@
   hosts: client
 
   tasks:
+    - name: Create Directory
+      ansible.builtin.file:
+        path: /home/ansible/mandelbrot
+        state: directory
+
     - name: Copy the key file
       ansible.builtin.copy:
         src: /root/mandelbrot/private_key
@@ -22,10 +27,10 @@
     - name: Clone the repo
       ansible.builtin.git:
         repo: https://github.com/navod-abay/distributed-mandelbrot-go
-        dest: /root/mandelbort
-        become: True
-        key-file: /home/ansible/mandelbrot/private_key   
-        vesion: master
+        dest: /root/mandelbrot/repo
+        key_file: /home/ansible/mandelbrot/private_key   
+        version: master
+      become: True
 
     - name: Compile go
       ansible.builtin.command: 
@@ -34,7 +39,7 @@
     
     - name: run build
       ansible.builtin.command: 
-        cmd: ./build/mandelbortset -protocolType=RPC -port=8080
+        cmd: ./build/mandelbrotset -protocolType=RPC -port=8080
 
 - name: Run master
   hosts: localhost
