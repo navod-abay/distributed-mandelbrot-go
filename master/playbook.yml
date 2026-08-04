@@ -20,26 +20,27 @@
 
     - name: Install git
       ansible.builtin.apt:
-        name: git
+        name: git 
         update_cache: yes
       become: yes
 
     - name: Clone the repo
       ansible.builtin.git:
-        repo: https://github.com/navod-abay/distributed-mandelbrot-go
-        dest: /root/mandelbrot/repo
+        repo: git@github.com/navod-abay/distributed-mandelbrot-go.git
+        dest: /home/ansible/mandelbrot/repo
         key_file: /home/ansible/mandelbrot/private_key   
         version: master
+        host_key: true
       become: True
 
     - name: Compile go
       ansible.builtin.command: 
         cmd: go build -o build/mandelbrotset .
-        chdir: /home/ansible/mandelbrot/client
+        chdir: /home/ansible/mandelbrot/repo/client
     
     - name: run build
       ansible.builtin.command: 
-        cmd: ./build/mandelbrotset -protocolType=RPC -port=8080
+        cmd: /home/ansible/mandelbrot/repo/build/mandelbrotset -protocolType=RPC -port=8080
 
 - name: Run master
   hosts: localhost
