@@ -64,9 +64,33 @@
         cmd: /usr/local/go/bin/go build -o /home/ansible/mandelbrot/repo/build/mandelbrotset .
         chdir: /home/ansible/mandelbrot/repo/client
     
-    - name: run build
-      ansible.builtin.command: 
-        cmd: /home/ansible/mandelbrot/repo/build/mandelbrotset -protocolType=RPC -port=8080
+    - name: Create systemd unit file for background service
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/mandelbrot.service
+        content: |
+          [Unit]
+          Description=Mandelbrot Background Worker
+          After=network.target
+
+          [Service]
+          Type=simple
+          User=ansible
+          WorkingDirectory=/home/ansible/mandelbrot/repo
+          ExecStart=/home/ansible/mandelbrot/repo/build/mandelbrotset
+          Restart=always
+
+          [Install]
+          WantedBy=multi-user.target
+        mode: '0644'
+      become: true
+
+    - name: Start worker service
+      ansible.builtin.systemd:
+        name: mandelbrot
+        state: started
+        enabled: true
+        daemon_reload: true
+      become: true
 
 - name: Run master
   hosts: localhost
