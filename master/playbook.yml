@@ -76,7 +76,7 @@
           Type=simple
           User=ansible
           WorkingDirectory=/home/ansible/mandelbrot/repo
-          ExecStart=/home/ansible/mandelbrot/repo/build/mandelbrotset
+          ExecStart=/home/ansible/mandelbrot/repo/build/mandelbrotset -protocolType-RPC
           Restart=always
 
           [Install]
@@ -128,8 +128,11 @@
       ansible.builtin.command:
         cmd: /usr/local/go/bin/go build -o /mandelbrot/repo/build/mandelbrotset  .
         chdir: /mandelbrot/repo/master
+      environment:
+        GOCAHCE: "/tmp/gocache"
+        GOPATH: "/tmp/gopath"
     
     - name: run master
       ansible.builtin.command:
         cmd: /mandelbrot/repo/build/mandelbrotset -protocolType=RPC
-        async: 3600  # Maximum 1hr
+      async: 3600  # Maximum 1hr

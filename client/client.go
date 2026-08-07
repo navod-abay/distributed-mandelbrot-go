@@ -72,7 +72,7 @@ func main() {
 	var opts = &slog.HandlerOptions{
 		Level: slog.LevelDebug,
 	}
-	var handler = slog.NewTextHandler(os.Stdin, opts)
+	var handler = slog.NewTextHandler(os.Stdout, opts)
 	var logger = slog.New(handler)
 	slog.SetDefault(logger)
 
