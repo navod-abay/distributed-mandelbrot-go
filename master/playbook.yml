@@ -94,7 +94,7 @@
 
 - name: Run master
   hosts: localhost
-
+  connection: local
   tasks:
     - name: Download official Go tarball
       ansible.builtin.get_url:
@@ -118,11 +118,18 @@
         mode: '0644'
       become: true
 
+    - name: Install unix  time command
+      ansible.builtin.apt:
+        name: time 
+        update_cache: false
+      become: yes
+
     - name: build master
       ansible.builtin.command:
-        cmd: /usr/local/go/bin/gogo build -o build/mandelbrotset .
+        cmd: /usr/local/go/bin/go build -o /mandelbrot/repo/build/mandelbrotset  .
         chdir: /root/mandelbrot/master
     
     - name: run master
       ansible.builtin.command:
-        cmd: ./build/mandelbrotset -protocolType=RPC
+        cmd: /mandelbrot/repo/build/mandelbrotset -protocolType=RPC
+        async: 3600  # Maximum 1hr

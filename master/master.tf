@@ -77,3 +77,9 @@ resource "local_file" "ansible_inventory" {
   filename        = "${path.module}/inventory.ini"
   file_permission = "0644"
 }
+
+resource "local_file" "clients_ip_file" {
+  content = jsonencode(google_compute_instance.client[*])  
+  filename        = "${path.module}/terraform_out.json"
+  file_permission = "0644"
+}
