@@ -1,37 +1,59 @@
-#! /bin/bash
+#! /usr/bin/env bash
 
-exec > /var/log/startup-script-custom.log 2>&1
+# Benchmark the mandelbrot set project and measure it's perf across various flags and options
+
+set -e
+
+if ! command -v /usr/bin/time &> /dev/null; then
+    echo "Error: /usr/bin/time is not installed"
+    exit 1
+fi
+
+if ! command -v bc &> /dev/null; then
+    echo "Error: bc is require"
+    exit 1
+fi
 
 
-mkdir mandelbrot
-cd mandelbrot
+total_real_time=0
+total_user_time=0
+total_sys_time=0
 
-apt-get update -y   
+cat  <<EOF >> benchmark.txt
+==============================================================================================================================
+EOF
 
-apt-get install -y git
-echo -e "Git installed.\n\n\n"
+for i in {1..4}; do
+    time_data=$( { printf "\n\n\n\n\n" | /usr/bin/time -f "%e %U %S %M" /bin/bash -c '/mandelbrot/repo/build/mandelbrotset   1>/dev/null 2>&1;'; } 2>&1 )
 
-mkdir /root/mandelbrot
-# Get private key from keystore
-gcloud secrets versions access 1 --secret="github_private_key" --project=$TF_VAR_project_name >> /root/mandelbrot/private_key       
-chmod 600 /root/mandelbrot/private_key
+    echo $time_data
+    echo "run $i finished"
 
-mkdir /root/.ssh
-chmod 700 /root/.ssh
+    read -r real_time user_time sys_time max_mem avg_mem <<< "$time_data"
+    total_real_time=$(echo "$total_real_time + $real_time" | bc)
+    total_sys_time=$(echo "$total_sys_time + $sys_time" | bc)
+    total_user_time=$(echo "$total_user_time + $user_time" | bc)
+    cat  <<EOF >> benchmark.txt
+    run $i
+    total time: $real_time \t cumulative time: $total_real_time
+    user time: $user_time \t cumulative time: $total_user_time
+    system time: $sys_time \t cumulative time: $total_sys_time
+    maximum memory: $max_mem
+    average memory: $avg_mem
 
-ssh-keyscan github.com >> /root/.ssh/known_hosts 
-chmod 600 /root/.ssh/known_hosts
 
-export GIT_SSH_COMMAND="ssh -i /root/mandelbrot/private_key -o BatchMode=yes"
+EOF
+done
 
-    mkdir repo
-    git clone git@github.com:navod-abay/distributed-mandelbrot-go.git repo
+average_real_time=$(echo "scale=4; $total_real_time / 4.0" | bc)
+average_user_time=$(echo "scale=4; $total_user_time / 4.0" | bc)
+average_sys_time=$(echo "scale=4; $total_sys_time / 4.0" | bc)
+cat >> benchmark.txt <<EOF
+------- Results -----------
+average real time: $average_real_time
+average user time: $average_user_time
+average sys time: $average_sys_time
 
-cd repo/master
+EOF
 
-pwd
-
-terraform init -input=false
-terraform plan -out=tfplan -input=false
-terraform apply tfplan
-ansible-playbook -i inventory.ini playbook.yml
+echo "Benchmarking finished"
