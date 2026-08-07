@@ -3,3 +3,11 @@
 *.csv
 snapshots/
 build/
+output/
+*.tfstate*
+*.pub
+keys/*
+master/.tfvars
+tfplan
+.terraform/
+*.tmp.*
