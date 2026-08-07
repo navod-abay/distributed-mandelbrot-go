@@ -136,19 +136,20 @@ func main() {
 
 	fileBytes, err := os.ReadFile("terraform_out.json")
 	var IPs []string
-	if err != nil {
-		slog.Debug("Can't find the terraform output file. Defaulting to hardcoded values")
-		IPs = []string{"127.0.0.1:8080", "127.0.0.1:8081"}
-	} else if json.Unmarshal(fileBytes, &IPs) != nil {
-		slog.Debug("Error unmarshaling JSON values. Defaulting to hardcoded IP values")
-		IPs = []string{"127.0.0.1:8080", "127.0.0.1:8081"}
-	} else if len(IPs) == 0 {
-		slog.Debug("No IP addresses found in json file")
-		IPs = []string{"127.0.0.1:8080", "127.0.0.1:8081"}
-	} else {
-		for i, v := range IPs {
-			IPs[i] = v + ":8080"
+	if err == nil {
+		err = json.Unmarshal(fileBytes, &IPs)
+		if err != nil {
+			slog.Debug("Can't find the terraform output file. Defaulting to hardcoded values, err:" + err.Error())
 		}
+	} else {
+		slog.Debug("Can't find the terraform output file. Defaulting to hardcoded values, err: %v" + err.Error())
+	}
+	if len(IPs) == 0 {
+		slog.Debug("No IP addresses found in json file")
+		IPs = []string{"127.0.0.1"}
+	}
+	for i, v := range IPs {
+		IPs[i] = v + ":8080"
 	}
 
 	var wg sync.WaitGroup

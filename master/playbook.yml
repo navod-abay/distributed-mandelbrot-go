@@ -127,7 +127,7 @@
     - name: build master
       ansible.builtin.command:
         cmd: /usr/local/go/bin/go build -o /mandelbrot/repo/build/mandelbrotset  .
-        chdir: /root/mandelbrot/master
+        chdir: /mandelbrot/repo/master
     
     - name: run master
       ansible.builtin.command:
