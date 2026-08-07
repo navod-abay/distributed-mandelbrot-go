@@ -21,16 +21,6 @@ import (
 	sharedproto "github.com/navod-abay/mandelbrotset-go/shared_proto"
 )
 
-type IPList struct {
-	Sensitive string   `json:"sensitive"`
-	TypeOfVar string   `json:"type"`
-	Value     []string `json:"value"`
-}
-
-type InventoryFile_t struct {
-	IPList IPList `json:"IPList"`
-}
-
 type ClientIdentifier struct {
 	id           string
 	numProcesses int
@@ -144,21 +134,20 @@ func main() {
 	slog.SetDefault(logger)
 	fmt.Printf("Running master node\n")
 
-	fileBytes, err := os.ReadFile("terra_out.json")
+	fileBytes, err := os.ReadFile("terraform_out.json")
 	var IPs []string
-	var inventoryFile InventoryFile_t
 	if err != nil {
 		slog.Debug("Can't find the terraform output file. Defaulting to hardcoded values")
 		IPs = []string{"127.0.0.1:8080", "127.0.0.1:8081"}
-	} else if json.Unmarshal(fileBytes, &inventoryFile) != nil {
+	} else if json.Unmarshal(fileBytes, &IPs) != nil {
 		slog.Debug("Error unmarshaling JSON values. Defaulting to hardcoded IP values")
 		IPs = []string{"127.0.0.1:8080", "127.0.0.1:8081"}
-	} else if len(inventoryFile.IPList.Value) == 0 {
+	} else if len(IPs) == 0 {
 		slog.Debug("No IP addresses found in json file")
 		IPs = []string{"127.0.0.1:8080", "127.0.0.1:8081"}
 	} else {
-		for i, v := range inventoryFile.IPList.Value {
-			inventoryFile.IPList.Value[i] = v + ":8080"
+		for i, v := range IPs {
+			IPs[i] = v + ":8080"
 		}
 	}
 

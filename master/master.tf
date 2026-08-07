@@ -79,7 +79,7 @@ resource "local_file" "ansible_inventory" {
 }
 
 resource "local_file" "clients_ip_file" {
-  content = jsonencode(google_compute_instance.client[*])  
+  content = jsonencode(google_compute_instance.client[*].network_interface[0].network_ip)  
   filename        = "${path.module}/terraform_out.json"
   file_permission = "0644"
 }
