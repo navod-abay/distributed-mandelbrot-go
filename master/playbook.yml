@@ -129,7 +129,7 @@
         cmd: /usr/local/go/bin/go build -o /mandelbrot/repo/build/mandelbrotset  .
         chdir: /mandelbrot/repo/master
       environment:
-        GOCAHCE: "/tmp/gocache"
+        GOCACHE: "/tmp/gocache"
         GOPATH: "/tmp/gopath"
     
     - name: run master
