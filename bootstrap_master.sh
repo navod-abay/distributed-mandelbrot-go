@@ -17,6 +17,13 @@ apt-get update -y
 
 # terraform dependencies
 apt-get install -y gnupg wget lsb-release
+if command -v wget && command -v gpg &> /dev/null; then
+    echo "utilities installed"
+else
+    echo "utilities not installed"
+    exit
+fi
+
 # Hashicorp key for signing
 wget -O- https://apt.releases.hashicorp.com/gpg | gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
 echo -e "Hashicorop key retrieved.\n"

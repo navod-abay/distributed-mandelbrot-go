@@ -133,6 +133,7 @@
         GOPATH: "/tmp/gopath"
     
     - name: run master
-      ansible.builtin.command:
-        cmd: /mandelbrot/repo/build/mandelbrotset -protocolType=RPC
+      ansible.builtin.shell:
+        cmd: ./run_master.sh
+        chdir: /mandelbrot/repo/master
       async: 3600  # Maximum 1hr
