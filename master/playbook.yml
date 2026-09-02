@@ -132,6 +132,12 @@
         GOCACHE: "/tmp/gocache"
         GOPATH: "/tmp/gopath"
     
+    - name: Give ansible permission to run script file
+      ansible.builtin.file:
+        path: ./run_master.sh
+        mode: '0755'
+      async: 3600  # Maximum 1hr
+
     - name: run master
       ansible.builtin.shell:
         cmd: ./run_master.sh
