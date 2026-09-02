@@ -28,10 +28,10 @@ func RpcHandshake(client *rpc.Client, wg *sync.WaitGroup, c chan RPCClientIdenti
 	return nil
 }
 
-func sendRPCWorkRequest(id int, client *rpc.Client, subImages []models.ImageDimensions, subdivision_levels int, wg *sync.WaitGroup, c chan models.ImageFragment) {
+func sendRPCWorkRequest(id int, client *rpc.Client, subImages []models.ImageDimensions, subdivision_levels int, wg *sync.WaitGroup, c chan models.ImageFragment, saveSnapshots bool) {
 	defer wg.Done()
 	fmt.Println("Sending work request to: " + strconv.Itoa(id) + "\n")
-	startWorkArgs := sharedproto.StartWorkArgs{ImageDimensions: subImages, Subdivision_level: subdivision_levels}
+	startWorkArgs := sharedproto.StartWorkArgs{ImageDimensions: subImages, Subdivision_level: subdivision_levels, SaveSnapshots: saveSnapshots}
 	var results []models.ImageFragment
 	err := client.Call("RpcServer.StartWork", startWorkArgs, &results)
 	slog.Debug("RCP call returned")
@@ -47,7 +47,7 @@ func sendRPCWorkRequest(id int, client *rpc.Client, subImages []models.ImageDime
 
 }
 
-func delegateRPC(subImages []models.ImageDimensions, subdivision_levels int, clients map[int]RPCClientIdentifier, totalProcessors int) []models.ImageFragment {
+func delegateRPC(subImages []models.ImageDimensions, subdivision_levels int, clients map[int]RPCClientIdentifier, totalProcessors int, saveSnapshots bool) []models.ImageFragment {
 	index := 0
 	var wg sync.WaitGroup
 	c := make(chan models.ImageFragment, totalProcessors)
@@ -55,7 +55,7 @@ func delegateRPC(subImages []models.ImageDimensions, subdivision_levels int, cli
 		wg.Add(1)
 		clientImageSet := subImages[index : index+int(client.numProcesses)]
 		slog.Debug("Going to send RPC request to client", "client", strconv.Itoa(id), "numSubImages", strconv.Itoa(len(clientImageSet)))
-		go sendRPCWorkRequest(id, client.client, clientImageSet, subdivision_levels, &wg, c)
+		go sendRPCWorkRequest(id, client.client, clientImageSet, subdivision_levels, &wg, c, saveSnapshots)
 		index += int(client.numProcesses)
 	}
 	wg.Wait()
@@ -68,7 +68,7 @@ func delegateRPC(subImages []models.ImageDimensions, subdivision_levels int, cli
 	return fragments
 }
 
-func RpcFlow(IPs []string) {
+func RpcFlow(IPs []string, saveSnapshots bool) {
 	slog.Debug("Running in RPC mode")
 	var wg sync.WaitGroup
 	c := make(chan RPCClientIdentifier, 5)
@@ -83,7 +83,7 @@ func RpcFlow(IPs []string) {
 		fmt.Printf("Successfully dialed ip: %v\n", ip)
 		go RpcHandshake(client, &wg, c, index)
 	}
-	slog.Debug("waiting for waitgroups")
+	slog.Debug("waiting for client to send processor details")
 	wg.Wait()
 	slog.Debug("Finished waiting for waitgroups")
 	close(c)
@@ -99,7 +99,7 @@ func RpcFlow(IPs []string) {
 		totalProcessors += int(client.numProcesses)
 	}
 	subImageDimensionsArray := solvers.GetSubImageDimensionsArrays(imageDimensions, totalProcessors)
-	fragments := delegateRPC(subImageDimensionsArray, subdivision_levels, identities, totalProcessors)
+	fragments := delegateRPC(subImageDimensionsArray, subdivision_levels, identities, totalProcessors, saveSnapshots)
 	var writeWaitGroup sync.WaitGroup
 	writeWaitGroup.Add(1)
 	writers.WriteFragmentsToBmp(fragments, "output.bmp", imageDimensions, &writeWaitGroup)

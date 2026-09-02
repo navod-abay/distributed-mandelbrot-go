@@ -124,6 +124,13 @@
         update_cache: false
       become: yes
 
+    - name: Install basic calculator command
+      ansible.builtin.apt:
+        name: bc
+        update_cache: false
+      become: yes
+
+
     - name: build master
       ansible.builtin.command:
         cmd: /usr/local/go/bin/go build -o /mandelbrot/repo/build/mandelbrotset  .

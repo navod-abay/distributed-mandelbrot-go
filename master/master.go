@@ -128,6 +128,7 @@ func main() {
 		}
 		return nil
 	})
+	saveSnapshots := flag.Bool("save-snapshots", false, "Specifies whether to save snapshots on remote targets")
 
 	flag.Parse()
 
@@ -182,7 +183,7 @@ func main() {
 		subImageDimensionsArray := solvers.GetSubImageDimensionsArrays(imageDimensions, totalProcessors)
 		delegate(subImageDimensionsArray, subdivision_levels, identities)
 	} else {
-		RpcFlow(IPs)
+		RpcFlow(IPs, *saveSnapshots)
 	}
 	fmt.Printf("Exiting master node\n")
 }

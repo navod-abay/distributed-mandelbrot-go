@@ -23,6 +23,7 @@ type EmptyInput struct{}
 type StartWorkArgs struct {
 	ImageDimensions   []models.ImageDimensions
 	Subdivision_level int
+	SaveSnapshots     bool
 }
 
 func (server *RpcServer) HelloWorld(name string, out *string) error {
@@ -46,7 +47,7 @@ func (servre *RpcServer) transformImageDimensions(imageDimensions models.ImageDi
 	return imageDimensions
 }
 
-func (server *RpcServer) calculateSubImage(imageDimensions models.ImageDimensions, init_skip int32, c chan models.ImageFragment, outerWaitGroup *sync.WaitGroup, identityTime string) {
+func (server *RpcServer) calculateSubImage(imageDimensions models.ImageDimensions, init_skip int32, c chan models.ImageFragment, outerWaitGroup *sync.WaitGroup, identityTime string, saveSnapshots bool) {
 	defer outerWaitGroup.Done()
 	imageDimensions = server.transformImageDimensions(imageDimensions)
 	slog.Debug("X_low: " + strconv.FormatFloat(imageDimensions.X_low, 'f', -1, 64))
@@ -61,7 +62,7 @@ func (server *RpcServer) calculateSubImage(imageDimensions models.ImageDimension
 	}
 	var wg sync.WaitGroup
 	wg.Add(1)
-	result := solvers.SubImageOptimizedCalculation(imageDimensions, pixelArray, init_skip, &wg, true)
+	result := solvers.SubImageOptimizedCalculation(imageDimensions, pixelArray, init_skip, &wg, saveSnapshots)
 	filename := strconv.Itoa(server.Port) + "/" + identityTime + "/" + rand.Text() + ".bmp"
 	wg.Wait()
 	wg.Add(1)
@@ -92,7 +93,7 @@ func (server *RpcServer) StartWork(startWorkArgs StartWorkArgs, results *[]model
 	var waitGroup sync.WaitGroup // Wait group to wait for parallelized sub images
 	for _, subImageDimension := range subImageDimensionsArray {
 		waitGroup.Add(1)
-		go server.calculateSubImage(subImageDimension, init_skip, c, &waitGroup, timestamp)
+		go server.calculateSubImage(subImageDimension, init_skip, c, &waitGroup, timestamp, startWorkArgs.SaveSnapshots)
 	}
 	slog.Debug("Waiting for calculating subimages")
 	waitGroup.Wait()
