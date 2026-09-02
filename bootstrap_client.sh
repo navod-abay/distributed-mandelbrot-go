@@ -24,9 +24,9 @@ cat  <<EOF >> benchmark.txt
 EOF
 
 for i in {1..4}; do
-    time_data=$( { printf "\n\n\n\n\n" | /usr/bin/time -f "%e %U %S %M" /bin/bash -c '/mandelbrot/repo/build/mandelbrotset   1>/dev/null 2>&1;'; } 2>&1 )
+        time_data=$( { printf "\n\n\n\n\n" | /usr/bin/time -f "%e %U %S %M" /bin/bash -c '/mandelbrot/repo/build/mandelbrotset   1>/dev/null 2>&1;'; } 2>&1 )
 
-    echo $time_data
+        echo $time_data
     echo "run $i finished"
 
     read -r real_time user_time sys_time max_mem avg_mem <<< "$time_data"

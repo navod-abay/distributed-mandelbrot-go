@@ -76,7 +76,7 @@
           Type=simple
           User=ansible
           WorkingDirectory=/home/ansible/mandelbrot/repo
-          ExecStart=/home/ansible/mandelbrot/repo/build/mandelbrotset -protocolType-RPC
+          ExecStart=/home/ansible/mandelbrot/repo/build/mandelbrotset -protocolType=RPC
           Restart=always
 
           [Install]
