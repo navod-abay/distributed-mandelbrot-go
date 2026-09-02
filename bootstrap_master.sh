@@ -16,7 +16,7 @@ cd mandelbrot
 apt-get update -y
 
 # terraform dependencies
-apt-get install -y gnupg software-properties-common
+apt-get install -y gnupg wget lsb-release
 # Hashicorp key for signing
 wget -O- https://apt.releases.hashicorp.com/gpg | gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
 echo -e "Hashicorop key retrieved.\n"
@@ -27,12 +27,22 @@ echo -e "Terraform repository added.\n"
 # Update the new repository
 apt-get update &&
 apt-get install -y terraform
-echo -e "Terraform installed.\n\n\n"
+if command -v terraform &> /dev/null; then
+    echo "terraform is installed"
+else
+    echo "terraform is not installed"
+    exit
+fi
 
 
 
 apt-get install -y git
-echo -e "Git installed.\n\n\n"  
+if command -v git &> /dev/null; then
+    echo -e "git is installed\n\n\n"
+else
+    echo -e "git is not installed\n\n\n"
+    exit
+fi
 
 mkdir /root/mandelbrot
 # Get private key from keystore
