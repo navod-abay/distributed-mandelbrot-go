@@ -189,6 +189,12 @@ func SaveSnapShotBMP(pixelArray [][]uint16, imageDimensions models.ImageDimensio
 	defer waitgroup.Done()
 	currentTime := time.Now()
 	fileName := currentTime.Format(time.RFC3339Nano) + ".bmp"
+	dir := filepath.Dir("snapshots/" + fileName)
+	dir_err := os.MkdirAll(dir, os.ModePerm)
+	if dir_err != nil {
+		slog.Error("Failed to make directory to store files")
+		return dir_err
+	}
 	snapshotFilepath := filepath.Join("snapshots", fileName)
 	slog.Debug("Saving a snapshot", "skip", skip)
 	bmp_f, err := os.Create(snapshotFilepath)
