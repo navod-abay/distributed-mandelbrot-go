@@ -22,6 +22,10 @@ func checkMandelbrotSetInclusionNoColor(z_0 complex128, max_iteration int) bool 
 	return true
 }
 
+func CheckMandelbrotSetInclusion(z_0 complex128, max_iteration int) uint16 {
+	return checkMandelbrotSetInclusion(z_0, max_iteration)
+}
+
 func checkMandelbrotSetInclusion(z_0 complex128, max_iteration int) uint16 {
 	z_i := z_0
 	r := real(z_0)

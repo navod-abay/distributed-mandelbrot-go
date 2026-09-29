@@ -268,3 +268,7 @@ func Run() {
 	fmt.Println("Calculation is over")
 
 }
+
+func CheckInclusion(z complex128) uint16 {
+	return solvers.CheckMandelbrotSetInclusion(z, 1000)
+}

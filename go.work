@@ -6,4 +6,5 @@ use (
 	./master
 	./shared_proto
 	./cli
+	./webServer
 )
