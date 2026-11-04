@@ -106,7 +106,7 @@ func getOneIntInput(prompt string) int {
 	return i
 }
 
-func calculatePixelSize(imageDimensions models.ImageDimensions, subdivision_level int) models.ImageDimensions {
+func CalculatePixelSize(imageDimensions models.ImageDimensions, subdivision_level int) models.ImageDimensions {
 	X_range := imageDimensions.X_high - imageDimensions.X_low
 	Y_range := imageDimensions.Y_high - imageDimensions.Y_low
 	var pixel_size float64
@@ -150,7 +150,7 @@ func GetImageDimensions() (models.ImageDimensions, int) {
 	imageDimensions.Value = int32(getFloatWithDefaultValue(reader, "Enter value", 40))
 	var pixel_size float64
 	var X_size, Y_size int
-	imageDimensions = calculatePixelSize(imageDimensions, subdivision_level)
+	imageDimensions = CalculatePixelSize(imageDimensions, subdivision_level)
 	fmt.Printf("HU: %v,HL: %v, S: %v, V: %v\n", imageDimensions.HueUpper, imageDimensions.HueLower, imageDimensions.Sat, imageDimensions.Value)
 	fmt.Println("Calculated array size")
 	fmt.Printf("X axis size: %v\n", X_size)
@@ -159,34 +159,16 @@ func GetImageDimensions() (models.ImageDimensions, int) {
 	return imageDimensions, subdivision_level
 }
 
-func Run() {
-	opts := &slog.HandlerOptions{
-		Level: slog.LevelDebug,
-	}
-	handler := slog.NewTextHandler(os.Stdout, opts)
-	logger := slog.New(handler)
-	slog.SetDefault(logger)
-	imageDimensions, subdivision_level := GetImageDimensions()
-
-	optimizationFlag := flag.Bool("optimization", true, "Set to true to enable optimization")
-	colorFlag := flag.Bool("not-colorized", true, "Produces a two colored image when set to true")
-	csvWriteFlag := flag.Bool("write-csv", true, "Set to true to write the end result to a csv")
-	bmpWriteFlag := flag.Bool("write-bmp", true, "Set to true to create a bmp image file")
-	saveSnapShotsFlag := flag.Bool("save-snapshots", false, "Set to save intermediate results in the optimization process")
-	noParellalizationFlag := flag.Bool("no-parellalization", true, "Set to true to stop parallelization and run everything in one thread")
-
-	flag.Parse()
-	fmt.Println(*noParellalizationFlag)
-	// Creating the image array
+func RouteToSolverOnFlage(flags models.Flags, imageDimensions models.ImageDimensions, subdivision_level int) {
 	var writeWaitGroup sync.WaitGroup
-	if !*optimizationFlag {
-		if *colorFlag {
+	if !flags.OptimizationFlag {
+		if flags.ColorFlag {
 			pixelArray := solvers.ConstructAndCalculatePixelArray(imageDimensions)
-			if *csvWriteFlag {
+			if flags.CsvWriteFlag {
 				writeWaitGroup.Add(1)
 				go writers.WriteToCSV(pixelArray, &writeWaitGroup)
 			}
-			if *bmpWriteFlag {
+			if flags.BmpWriteFlag {
 				writeWaitGroup.Add(1)
 				includedColor := make([]byte, 2)
 				binary.LittleEndian.PutUint16(includedColor, 0)
@@ -197,10 +179,10 @@ func Run() {
 			}
 		} else {
 			pixelArray := solvers.ConstructAndCalculateNoColorPixelArray(imageDimensions)
-			if *csvWriteFlag {
+			if flags.CsvWriteFlag {
 				writers.WriteToCSVNoColor(pixelArray)
 			}
-			if *bmpWriteFlag {
+			if flags.BmpWriteFlag {
 				includedColor := make([]byte, 2)
 				binary.LittleEndian.PutUint16(includedColor, 0)
 				excludedColor := make([]byte, 2)
@@ -211,15 +193,15 @@ func Run() {
 		}
 	} else {
 
-		if !*noParellalizationFlag {
+		if !flags.NoParellalizationFlag {
 			fmt.Print("Running with no parallelization")
-			pixelArray := solvers.OptimizedCalculation(imageDimensions, subdivision_level, *saveSnapShotsFlag)
+			pixelArray := solvers.OptimizedCalculation(imageDimensions, subdivision_level, flags.SaveSnapShotsFlag)
 
-			if *csvWriteFlag {
+			if flags.CsvWriteFlag {
 				writeWaitGroup.Add(1)
 				go writers.WriteToCSV(pixelArray, &writeWaitGroup)
 			}
-			if *bmpWriteFlag {
+			if flags.BmpWriteFlag {
 				writeWaitGroup.Add(1)
 				includedColor := make([]byte, 2)
 				binary.LittleEndian.PutUint16(includedColor, 0)
@@ -246,14 +228,14 @@ func Run() {
 			}
 			for _, subImageDimension := range subImageDimensionsArray {
 				waitGroup.Add(1)
-				go solvers.SubImageOptimizedCalculation(subImageDimension, pixelArray, init_skip, &waitGroup, *saveSnapShotsFlag)
+				go solvers.SubImageOptimizedCalculation(subImageDimension, pixelArray, init_skip, &waitGroup, flags.SaveSnapShotsFlag)
 			}
 			waitGroup.Wait()
-			if *csvWriteFlag {
+			if flags.CsvWriteFlag {
 				writeWaitGroup.Add(1)
 				go writers.WriteToCSV(pixelArray, &writeWaitGroup)
 			}
-			if *bmpWriteFlag {
+			if flags.BmpWriteFlag {
 				writeWaitGroup.Add(1)
 				includedColor := make([]byte, 2)
 				binary.LittleEndian.PutUint16(includedColor, 0)
@@ -266,6 +248,33 @@ func Run() {
 	}
 	writeWaitGroup.Wait()
 	fmt.Println("Calculation is over")
+}
+
+func parseFlags() models.Flags {
+	var flags models.Flags
+	flags.OptimizationFlag = *flag.Bool("optimization", true, "Set to true to enable optimization")
+	flags.ColorFlag = *flag.Bool("not-colorized", true, "Produces a two colored image when set to true")
+	flags.CsvWriteFlag = *flag.Bool("write-csv", true, "Set to true to write the end result to a csv")
+	flags.BmpWriteFlag = *flag.Bool("write-bmp", true, "Set to true to create a bmp image file")
+	flags.SaveSnapShotsFlag = *flag.Bool("save-snapshots", false, "Set to save intermediate results in the optimization process")
+	flags.NoParellalizationFlag = *flag.Bool("no-parellalization", true, "Set to true to stop parallelization and run everything in one thread")
+
+	flag.Parse()
+
+	return flags
+}
+
+func Run() {
+	opts := &slog.HandlerOptions{
+		Level: slog.LevelDebug,
+	}
+	handler := slog.NewTextHandler(os.Stdout, opts)
+	logger := slog.New(handler)
+	slog.SetDefault(logger)
+	imageDimensions, subdivision_level := GetImageDimensions()
+
+	flags := parseFlags()
+	RouteToSolverOnFlage(flags, imageDimensions, subdivision_level)
 
 }
 

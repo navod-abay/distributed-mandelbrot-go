@@ -12,3 +12,8 @@ This part is actually oversimplified and might have the opposite effects of taki
 
 Distributed Benchmarking Prequisite
 GCP secret manager api enabled.
+
+### Web Server
+Uses a standard go lang server with graceful shutdown. Capabilities are
+1. Check inclusion of a complex number. /check-inclusion
+2. Generate an image and sever throught HTTPS
