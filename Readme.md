@@ -14,6 +14,9 @@ Distributed Benchmarking Prequisite
 GCP secret manager api enabled.
 
 ### Web Server
-Uses a standard go lang server with graceful shutdown. Capabilities are
+Uses a standard go lang server with graceful shutdown. Use --tls=True flag to use https. Defaults to http. Create certificates for TLS connectios in the webServer/certs folder
+openssl req -x509 -newkey rsa:4096 -keyout key.pem -out cert.pem -days 365 -nodes -subj "/CN=localhost"
+Capabilities are
 1. Check inclusion of a complex number. /check-inclusion
+curl -v "https://localhost:8080/check-inclusion?X=1.25&Y=0.87"
 2. Generate an image and sever throught HTTPS

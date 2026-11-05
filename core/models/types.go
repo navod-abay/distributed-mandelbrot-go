@@ -27,7 +27,7 @@ type ImageDimensions struct {
 	HueUpper int32 `json:"hue_upper"`
 	HueLower int32 `json:"hue_lower"`
 	Sat      int32 `json:"sat"`
-	Value    int32 `json:"valu"`
+	Value    int32 `json:"value"`
 }
 
 type ImageFragment struct {
@@ -48,4 +48,10 @@ type Flags struct {
 	BmpWriteFlag          bool
 	SaveSnapShotsFlag     bool
 	NoParellalizationFlag bool
+}
+
+type SolverResult struct {
+	Color         bool
+	NoColorMatrix *[][]bool
+	ColorMatrix   *[][]uint16
 }

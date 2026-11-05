@@ -3,7 +3,9 @@ package writers
 import (
 	"bufio"
 	"encoding/binary"
+	"errors"
 	"fmt"
+	"io"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -63,8 +65,8 @@ func WriteFragmentsToBmp(fragments []models.ImageFragment, filename string, orig
 		fmt.Println("Failed to opena  writer for the bmp file")
 		slog.Error(err.Error())
 	} else {
-		WriteBmpHeader(bmp_f, calculateBMPHeaderDetailsFromFragments(origImageDimension))
 		writer := bufio.NewWriter(bmp_f)
+		WriteBmpHeader(writer, calculateBMPHeaderDetailsFromFragments(origImageDimension))
 		for x_index := range maxXIndex {
 			for y_index := range maxYIndex {
 				pixelArray := fragments[fragmentPointers[x_index][y_index]].Result
@@ -98,9 +100,8 @@ func calculateBMPHeaderDetailsFromFragments(origImageDimension models.ImageDimen
 	details.endInfoHeader = []int32{0, 0, 0, 0, 0, 0}
 	return details
 }
-func WriteBmpHeader(file *os.File, headerDetails BmpHeaderDetails) {
+func WriteBmpHeader(bufferedWriter *bufio.Writer, headerDetails BmpHeaderDetails) {
 	slog.Debug("Writing tp BMP file", "headerDetails", headerDetails)
-	bufferedWriter := bufio.NewWriter(file)
 	bufferedWriter.WriteString("BM")
 	binary.Write(bufferedWriter, binary.LittleEndian, headerDetails.fileSize)
 	binary.Write(bufferedWriter, binary.LittleEndian, headerDetails.reserved)
@@ -142,8 +143,8 @@ func WriteToBmpFileNoColor(pixelArray [][]bool, imageDimensions models.ImageDime
 	if err != nil {
 		fmt.Println("Failed to opena  writer for the bmp file")
 	} else {
-		WriteBmpHeader(bmp_f, CalculateBMPHeaderDetails(imageDimensions))
 		writer := bufio.NewWriter(bmp_f)
+		WriteBmpHeader(writer, CalculateBMPHeaderDetails(imageDimensions))
 		for i := range pixelArray[0] {
 			for j := range pixelArray {
 				if pixelArray[j][i] {
@@ -173,8 +174,8 @@ func WriteToBmpFile(pixelArray [][]uint16, imageDimensions models.ImageDimension
 		fmt.Println("Failed to opena  writer for the bmp file")
 		slog.Error(err.Error())
 	} else {
-		WriteBmpHeader(bmp_f, CalculateBMPHeaderDetails(imageDimensions))
 		writer := bufio.NewWriter(bmp_f)
+		WriteBmpHeader(writer, CalculateBMPHeaderDetails(imageDimensions))
 		for i := range pixelArray[0] {
 			for j := range pixelArray {
 				writer.Write(colors.MapIterationsToUint16Colors(pixelArray[j][i], imageDimensions.HueUpper, imageDimensions.HueLower, imageDimensions.Sat, imageDimensions.Value))
@@ -183,6 +184,27 @@ func WriteToBmpFile(pixelArray [][]uint16, imageDimensions models.ImageDimension
 		writer.Flush()
 	}
 	defer bmp_f.Close()
+}
+
+func StreamBmpFile(r io.Writer, pixelArray [][]uint16, imageDimensions models.ImageDimensions, filename string, iterationThreshold int, writeWaitgroup *sync.WaitGroup) error {
+	defer writeWaitgroup.Done()
+	fmt.Println("Creating a bmp file")
+	dir := filepath.Dir("output/" + filename)
+	dir_err := os.MkdirAll(dir, os.ModePerm)
+	if dir_err != nil {
+		slog.Error("Failed to make directory to store files")
+		return errors.New("Stuff Made heree")
+	}
+
+	writer := bufio.NewWriter(r)
+	WriteBmpHeader(writer, CalculateBMPHeaderDetails(imageDimensions))
+	for i := range pixelArray[0] {
+		for j := range pixelArray {
+			writer.Write(colors.MapIterationsToUint16Colors(pixelArray[j][i], imageDimensions.HueUpper, imageDimensions.HueLower, imageDimensions.Sat, imageDimensions.Value))
+		}
+	}
+	writer.Flush()
+	return nil
 }
 
 func SaveSnapShotBMP(pixelArray [][]uint16, imageDimensions models.ImageDimensions, skip int, waitgroup *sync.WaitGroup) error {
@@ -201,8 +223,8 @@ func SaveSnapShotBMP(pixelArray [][]uint16, imageDimensions models.ImageDimensio
 	if err != nil {
 		fmt.Println("Failed to opena  writer for the bmp file")
 	} else {
-		WriteBmpHeader(bmp_f, CalculateBMPHeaderDetails(imageDimensions))
 		writer := bufio.NewWriter(bmp_f)
+		WriteBmpHeader(writer, CalculateBMPHeaderDetails(imageDimensions))
 		for i := range pixelArray[0] {
 			for j := range pixelArray {
 				writer.Write(colors.MapIterationsToUint16Colors(pixelArray[j][i], imageDimensions.HueUpper, imageDimensions.HueLower, imageDimensions.Sat, imageDimensions.Value))

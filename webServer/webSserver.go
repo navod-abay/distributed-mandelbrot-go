@@ -4,18 +4,24 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"flag"
 	"fmt"
 	"io"
+	"log"
 	"log/slog"
 	"net/http"
 	"os"
 	"os/signal"
+	"runtime/debug"
 	"strconv"
+	"sync"
 	"syscall"
 	"time"
 
+	"github.com/navod-abay/mandelbrotset-go/core"
 	generate "github.com/navod-abay/mandelbrotset-go/core"
 	"github.com/navod-abay/mandelbrotset-go/core/models"
+	"github.com/navod-abay/mandelbrotset-go/core/writers"
 )
 
 type CheckRequestResponse struct {
@@ -23,36 +29,41 @@ type CheckRequestResponse struct {
 }
 
 type ImageRequest struct {
-	ImageDimensaion       models.ImageDimensions
-	Subdivision_levels    int  `json:"subdivision_levels"`
-	OptimizationFlag      bool `json:"optimization_flag"`
-	ColorFlag             bool `json:"color_flag"`
-	CsvWriteFlag          bool `json:"csv_write_flag"`
-	BmpWriteFlag          bool `json:"bmp_write_flag"`
-	SaveSnapShotsFlag     bool `json:"save_snapshot_flag"`
-	NoParellalizationFlag bool `json:"no_parellalization_flag"`
+	ImageDimension     *models.ImageDimensions `json:"image_dimensions"`
+	Subdivision_levels int                     `json:"subdivision_levels"`
+	ColorFlag          bool                    `json:"color_flag"`
+	BmpWriteFlag       bool                    `json:"bmp_write_flag"`
 }
 
 func ImageRequestHandler(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("Image Handler got called")
 	var req ImageRequest
-	err := json.NewDecoder(r.Body).Decode(&req)
-
-	if err != nil {
-		http.Error(w, "Invalid Request", 400)
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid Request", http.StatusBadRequest)
+		slog.Debug("Error: %v", err)
+		return
+	}
+	if req.ImageDimension == nil || ValidateImageRequest(*req.ImageDimension) != nil {
+		http.Error(w, "No Image Dimensions Specified", http.StatusBadRequest)
 		return
 	}
 	fmt.Printf("%v\n", req)
-	imageDimensions := generate.CalculatePixelSize(req.ImageDimensaion, req.Subdivision_levels)
+	imageDimensions := generate.CalculatePixelSize(*req.ImageDimension, req.Subdivision_levels)
 	flags := models.Flags{
-		OptimizationFlag:      req.OptimizationFlag,
+		OptimizationFlag:      true,
 		ColorFlag:             req.ColorFlag,
-		CsvWriteFlag:          req.CsvWriteFlag,
+		CsvWriteFlag:          false,
 		BmpWriteFlag:          req.BmpWriteFlag,
-		SaveSnapShotsFlag:     req.SaveSnapShotsFlag,
-		NoParellalizationFlag: req.NoParellalizationFlag,
+		SaveSnapShotsFlag:     false,
+		NoParellalizationFlag: false,
 	}
-	generate.RouteToSolverOnFlage(flags, imageDimensions, req.Subdivision_levels)
-
+	filename := "output.bmp"
+	solverResult := generate.RouteToSolverOnFlags(flags, imageDimensions, req.Subdivision_levels)
+	w.Header().Set("Content-Type", "application/octet-stream")
+	w.Header().Set("Content-Disposition", "attachment; filename=filename")
+	var wg sync.WaitGroup
+	writers.StreamBmpFile(w, *solverResult.ColorMatrix, imageDimensions, filename, core.Maximum_iteration_depth, &wg)
+	wg.Wait()
 }
 
 func CheckInclusionEndpoint(w http.ResponseWriter, r *http.Request) {
@@ -91,21 +102,44 @@ func printRequestBodyHandler(next http.Handler) http.Handler {
 	})
 }
 
+func panicRecoverMiddlewear(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer func() {
+			if err := recover(); err != nil {
+				log.Printf("Error: %v\n Stack: %v", err, string(debug.Stack()))
+
+				http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			}
+		}()
+		next.ServeHTTP(w, r)
+	})
+}
+
 func main() {
+	tlsFlag := flag.Bool("tls", false, "Set to true if using TLS. certificates should be in the certs folder")
+	flag.Parse()
 	mux := http.NewServeMux()
 
-	mux.Handle("GET /check-inclusion", printRequestBodyHandler(http.HandlerFunc(CheckInclusionEndpoint)))
+	mux.Handle("GET /check-inclusion", http.HandlerFunc(CheckInclusionEndpoint))
+	mux.HandleFunc("POST /image", ImageRequestHandler)
 
 	server := &http.Server{
 		Addr:         ":8080",
-		Handler:      mux,
+		Handler:      panicRecoverMiddlewear(mux),
 		ReadTimeout:  5 * time.Second,
 		WriteTimeout: 10 * time.Second,
 		IdleTimeout:  30 * time.Second,
 	}
 
 	go func() {
-		err := server.ListenAndServe()
+		var err error
+		if *tlsFlag {
+			fmt.Println("Running wit HTTPS")
+			err = server.ListenAndServeTLS("certs/cert.pem", "certs/key.pem")
+		} else {
+			fmt.Println("Running with just HTTP")
+			err = server.ListenAndServe()
+		}
 		if err != nil && errors.Is(err, http.ErrServerClosed) {
 			fmt.Printf("Server closed unexpectedly")
 		}

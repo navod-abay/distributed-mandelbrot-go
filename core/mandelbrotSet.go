@@ -18,7 +18,7 @@ import (
 )
 
 const (
-	maximum_iteration_depth = 100
+	Maximum_iteration_depth = 100
 	base_resolution         = 4
 )
 
@@ -159,57 +159,46 @@ func GetImageDimensions() (models.ImageDimensions, int) {
 	return imageDimensions, subdivision_level
 }
 
-func RouteToSolverOnFlage(flags models.Flags, imageDimensions models.ImageDimensions, subdivision_level int) {
+func RouteToWriterOnFlags(flags models.Flags, filepath string, imageDimensions models.ImageDimensions, solverResult models.SolverResult) {
 	var writeWaitGroup sync.WaitGroup
+	if solverResult.Color {
+		if flags.CsvWriteFlag {
+			writeWaitGroup.Add(1)
+			go writers.WriteToCSV(*solverResult.ColorMatrix, &writeWaitGroup)
+		}
+		if flags.BmpWriteFlag {
+			writeWaitGroup.Add(1)
+			includedColor := make([]byte, 2)
+			binary.LittleEndian.PutUint16(includedColor, 0)
+			excludedColor := make([]byte, 2)
+			binary.LittleEndian.PutUint16(excludedColor, 255)
+			go writers.WriteToBmpFile(*solverResult.ColorMatrix, imageDimensions, filepath, Maximum_iteration_depth, &writeWaitGroup)
+
+		}
+	} else {
+
+	}
+	writeWaitGroup.Wait()
+}
+
+func RouteToSolverOnFlags(flags models.Flags, imageDimensions models.ImageDimensions, subdivision_level int) models.SolverResult {
+	var result models.SolverResult
+	result.Color = true
 	if !flags.OptimizationFlag {
 		if flags.ColorFlag {
 			pixelArray := solvers.ConstructAndCalculatePixelArray(imageDimensions)
-			if flags.CsvWriteFlag {
-				writeWaitGroup.Add(1)
-				go writers.WriteToCSV(pixelArray, &writeWaitGroup)
-			}
-			if flags.BmpWriteFlag {
-				writeWaitGroup.Add(1)
-				includedColor := make([]byte, 2)
-				binary.LittleEndian.PutUint16(includedColor, 0)
-				excludedColor := make([]byte, 2)
-				binary.LittleEndian.PutUint16(excludedColor, 255)
-				go writers.WriteToBmpFile(pixelArray, imageDimensions, "output.bmp", maximum_iteration_depth, &writeWaitGroup)
-
-			}
+			result.ColorMatrix = &pixelArray
 		} else {
 			pixelArray := solvers.ConstructAndCalculateNoColorPixelArray(imageDimensions)
-			if flags.CsvWriteFlag {
-				writers.WriteToCSVNoColor(pixelArray)
-			}
-			if flags.BmpWriteFlag {
-				includedColor := make([]byte, 2)
-				binary.LittleEndian.PutUint16(includedColor, 0)
-				excludedColor := make([]byte, 2)
-				binary.LittleEndian.PutUint16(excludedColor, 255)
-				writers.WriteToBmpFileNoColor(pixelArray, imageDimensions, includedColor, excludedColor)
-
-			}
+			result.Color = false
+			result.NoColorMatrix = &pixelArray
 		}
 	} else {
 
 		if !flags.NoParellalizationFlag {
 			fmt.Print("Running with no parallelization")
 			pixelArray := solvers.OptimizedCalculation(imageDimensions, subdivision_level, flags.SaveSnapShotsFlag)
-
-			if flags.CsvWriteFlag {
-				writeWaitGroup.Add(1)
-				go writers.WriteToCSV(pixelArray, &writeWaitGroup)
-			}
-			if flags.BmpWriteFlag {
-				writeWaitGroup.Add(1)
-				includedColor := make([]byte, 2)
-				binary.LittleEndian.PutUint16(includedColor, 0)
-				excludedColor := make([]byte, 2)
-				binary.LittleEndian.PutUint16(excludedColor, 255)
-				go writers.WriteToBmpFile(pixelArray, imageDimensions, "output.bmp", maximum_iteration_depth, &writeWaitGroup)
-
-			}
+			result.ColorMatrix = &pixelArray
 		} else {
 			fmt.Print("Running with parallelization")
 			var waitGroup sync.WaitGroup // Wait group to wait for parallelized sub images
@@ -231,23 +220,11 @@ func RouteToSolverOnFlage(flags models.Flags, imageDimensions models.ImageDimens
 				go solvers.SubImageOptimizedCalculation(subImageDimension, pixelArray, init_skip, &waitGroup, flags.SaveSnapShotsFlag)
 			}
 			waitGroup.Wait()
-			if flags.CsvWriteFlag {
-				writeWaitGroup.Add(1)
-				go writers.WriteToCSV(pixelArray, &writeWaitGroup)
-			}
-			if flags.BmpWriteFlag {
-				writeWaitGroup.Add(1)
-				includedColor := make([]byte, 2)
-				binary.LittleEndian.PutUint16(includedColor, 0)
-				excludedColor := make([]byte, 2)
-				binary.LittleEndian.PutUint16(excludedColor, 255)
-				go writers.WriteToBmpFile(pixelArray, imageDimensions, "output.bmp", maximum_iteration_depth, &writeWaitGroup)
-
-			}
+			result.ColorMatrix = &pixelArray
 		}
 	}
-	writeWaitGroup.Wait()
 	fmt.Println("Calculation is over")
+	return result
 }
 
 func parseFlags() models.Flags {
@@ -274,7 +251,8 @@ func Run() {
 	imageDimensions, subdivision_level := GetImageDimensions()
 
 	flags := parseFlags()
-	RouteToSolverOnFlage(flags, imageDimensions, subdivision_level)
+	pixelArray := RouteToSolverOnFlags(flags, imageDimensions, subdivision_level)
+	RouteToWriterOnFlags(flags, "output.bmp", imageDimensions, pixelArray)
 
 }
 
