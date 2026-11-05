@@ -11,3 +11,4 @@ master/.tfvars
 tfplan
 .terraform/
 *.tmp.*
+*.pem
